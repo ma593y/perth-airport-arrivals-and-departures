@@ -1,0 +1,54 @@
+# Perth Airport flight board — API + collector (shared SQLite volume)
+#
+#   docker compose build
+#   docker compose up -d api
+#   docker compose --profile collect run --rm collector
+#   docker compose --profile scheduler up -d
+
+services:
+  api:
+    build: .
+    image: perth-airport-arrivals-and-departures:latest
+    ports:
+      - "${PORT:-3000}:3000"
+    environment:
+      DATABASE_PATH: /app/data/flights.db
+      PORT: "3000"
+      TZ: Australia/Perth
+    volumes:
+      - flight-data:/app/data
+    restart: unless-stopped
+    entrypoint: ["/app/docker/entrypoint-api.sh"]
+
+  collector:
+    profiles: [collect]
+    image: perth-airport-arrivals-and-departures:latest
+    build: .
+    environment:
+      DATABASE_PATH: /app/data/flights.db
+      TZ: Australia/Perth
+    volumes:
+      - flight-data:/app/data
+    entrypoint: ["/app/docker/entrypoint-collect.sh"]
+    depends_on:
+      api:
+        condition: service_started
+
+  scheduler:
+    profiles: [scheduler]
+    image: perth-airport-arrivals-and-departures:latest
+    build: .
+    environment:
+      DATABASE_PATH: /app/data/flights.db
+      TZ: Australia/Perth
+      SCRAPE_INTERVAL_SECONDS: ${SCRAPE_INTERVAL_SECONDS:-900}
+    volumes:
+      - flight-data:/app/data
+    entrypoint: ["/app/docker/scrape-loop.sh"]
+    depends_on:
+      api:
+        condition: service_started
+    restart: unless-stopped
+
+volumes:
+  flight-data:

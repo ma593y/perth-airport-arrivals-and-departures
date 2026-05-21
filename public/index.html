@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Departures &amp; arrivals | Perth Airport</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <header class="site-header">
+      <div class="site-header-inner">
+        <div class="site-header-text">
+          <span class="site-title">Perth Airport Arrivals &amp; Departures</span>
+        </div>
+      </div>
+    </header>
+
+    <div class="flight-search" data-js-component="FlightSearch">
+      <section
+        class="flight-search-filters bg-brand-blue"
+        id="flight-search-panel"
+        aria-label="Flight board filters"
+      >
+        <div class="filter-header">
+          <button
+            type="button"
+            id="btn-filter-toggle"
+            class="filter-toggle"
+            aria-expanded="false"
+            aria-controls="filter-drawer"
+            aria-label="Toggle filters"
+            aria-live="polite"
+          >
+            <span class="filter-toggle-leading">
+              <span class="filter-toggle-label">Arrivals</span>
+              <span id="filter-count" class="filter-count"></span>
+            </span>
+            <span class="filter-toggle-trail">
+              <span id="updated-label" class="updated-label">Updated …</span>
+              <span class="filter-toggle-chevron" aria-hidden="true"></span>
+            </span>
+          </button>
+        </div>
+
+        <div id="filter-drawer" class="filter-drawer">
+          <div class="filter-row filter-row-selects">
+            <div class="pa-input__outer">
+              <label class="pa-input__label" for="filter-direction"
+                >Direction</label
+              >
+              <div class="pa-select-wrap">
+                <select id="filter-direction" class="pa-select-native">
+                  <option value="arrivals" selected>Arrivals</option>
+                  <option value="departures">Departures</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="pa-input__outer">
+              <label class="pa-input__label" for="filter-dom-int"
+                >Intl/Dom</label
+              >
+              <div class="pa-select-wrap">
+                <select id="filter-dom-int" class="pa-select-native">
+                  <option value="">All</option>
+                  <option value="domestic">Domestic</option>
+                  <option value="international">International</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="pa-input__outer">
+              <label class="pa-input__label" for="filter-terminal-group"
+                >Terminal</label
+              >
+              <div class="pa-select-wrap">
+                <select id="filter-terminal-group" class="pa-select-native">
+                  <option value="">All terminals</option>
+                  <option value="t1t2">T1 + T2</option>
+                  <option value="t3t4">T3 + T4</option>
+                  <option value="others">Others</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="pa-input__outer">
+              <label class="pa-input__label" for="filter-hours"
+                >Time window</label
+              >
+              <div class="pa-select-wrap">
+                <select id="filter-hours" class="pa-select-native">
+                  <option value="1">Last 1 hour</option>
+                  <option value="2" selected>Last 2 hours</option>
+                  <option value="4">Last 4 hours</option>
+                  <option value="6">Last 6 hours</option>
+                  <option value="12">Last 12 hours</option>
+                  <option value="24">Last 24 hours</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="pa-input__outer">
+              <label
+                class="pa-input__label"
+                for="filter-date"
+                id="label-filter-date"
+                >Arrival date</label
+              >
+              <div class="pa-select-wrap">
+                <select id="filter-date" class="pa-select-native">
+                  <option value="">All dates</option>
+                </select>
+              </div>
+            </div>
+
+          </div>
+
+          <div class="filter-toolbar">
+            <label class="filter-inline">
+              <input type="checkbox" id="filter-hide-completed" />
+              <span id="label-hide-completed">Hide Landed</span>
+            </label>
+            <button type="button" id="btn-clear-filters" class="btn-clear-filters">
+              Clear filters
+            </button>
+          </div>
+        </div>
+      </section>
+
+      <main>
+        <div id="status-banner" class="status-banner" hidden></div>
+        <div class="table-wrap">
+          <table class="flight-search-res-table">
+            <thead>
+              <tr>
+                <th scope="col">Flight</th>
+                <th scope="col">Time</th>
+                <th scope="col">Status</th>
+              </tr>
+            </thead>
+            <tbody id="flight-tbody"></tbody>
+          </table>
+        </div>
+      </main>
+    </div>
+
+    <footer class="site-footer">
+      <p>Local flight board from scraped data.</p>
+    </footer>
+
+    <script src="app.js" type="module"></script>
+  </body>
+</html>

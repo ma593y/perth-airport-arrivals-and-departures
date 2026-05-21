@@ -1,0 +1,529 @@
+/* Perth Airport FlightSearch-aligned tokens */
+:root {
+  --brand-purple: #5c2d91;
+  --brand-purple-dark: #4a2475;
+  --brand-blue: #004f71;
+  --brand-orange-medium: #e87722;
+  --grey-1: #f5f5f5;
+  --grey-2: #ebebeb;
+  --grey-3: #d9d9d9;
+  --secondary-sand: #f4f0e8;
+  --select-on-filter-bg: #ffffff;
+  --surface: #ffffff;
+  --text: #333333;
+  --text-heading: #1a1a1a;
+  --muted: #666666;
+  --link: var(--brand-purple);
+  --link-hover: var(--brand-purple-dark);
+  --filter-label: rgba(255, 255, 255, 0.95);
+  --table-header-bg: #ffffff;
+  --table-header-text: var(--text-heading);
+  --status-departed: #3d6a8a;
+  --status-boarding: #1a6b3c;
+  --status-cancelled: #b91c1c;
+  --status-delayed: #b8860b;
+  --status-early: #0d9488;
+  --status-ontime: #15803d;
+  --status-scheduled: #374151;
+  --banner-warn-bg: #fff8e6;
+  --banner-warn-border: #e6c84a;
+  --banner-warn-text: #6b5a00;
+  --banner-error-bg: #fdecea;
+  --banner-error-border: #e8a09a;
+  --banner-error-text: #8a1f11;
+  --font-sans:
+    "Helvetica Neue", Helvetica, Arial, "Segoe UI", Roboto, sans-serif;
+  --radius: 2px;
+  --shadow-header: 0 1px 3px rgba(0, 0, 0, 0.08);
+  --board-gutter: 1.5rem;
+  --board-wrap-pad-x: 0px;
+  --board-cell-pad-x: 0.85rem;
+  --board-content-inset: calc(
+    var(--board-gutter) + var(--board-wrap-pad-x) + var(--board-cell-pad-x)
+  );
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: var(--font-sans);
+  background: var(--surface);
+  color: var(--text);
+  line-height: 1.5;
+  font-size: 16px;
+}
+
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  border: 0;
+}
+
+a {
+  color: var(--link);
+}
+
+a:hover {
+  color: var(--link-hover);
+}
+
+/* Site header */
+.site-header {
+  background: var(--surface);
+  border-bottom: 3px solid var(--brand-blue);
+  box-shadow: var(--shadow-header);
+  padding: 0;
+}
+
+.site-header-inner {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0.875rem 1.5rem;
+}
+
+.site-header-text {
+  text-align: center;
+}
+
+.site-title {
+  display: block;
+  font-size: 1.375rem;
+  font-weight: 700;
+  color: var(--text-heading);
+}
+
+/* Flight search stack */
+.flight-search {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 0 2rem;
+}
+
+.bg-brand-blue {
+  background: var(--brand-blue);
+}
+
+/* Teal filter bar */
+.flight-search-filters {
+  color: var(--filter-label);
+  padding: 0;
+}
+
+.filter-header {
+  width: 100%;
+}
+
+.filter-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: nowrap;
+  gap: 0.35rem 0.5rem;
+  width: 100%;
+  padding: 0.7rem var(--board-content-inset);
+  border: none;
+  background: transparent;
+  color: inherit;
+  font-size: 0.8125rem;
+  font-family: inherit;
+  cursor: pointer;
+  text-align: left;
+  white-space: nowrap;
+}
+
+.filter-toggle-leading {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: nowrap;
+  flex-shrink: 1;
+  min-width: 0;
+  gap: 0.25rem;
+  white-space: nowrap;
+}
+
+.filter-toggle-label {
+  font-weight: 700;
+  flex-shrink: 0;
+}
+
+.filter-count,
+.updated-label {
+  font-weight: 400;
+  font-size: inherit;
+  color: inherit;
+  letter-spacing: normal;
+  text-transform: none;
+}
+
+.filter-count {
+  flex-shrink: 0;
+}
+
+.filter-toggle-trail {
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+  flex-wrap: nowrap;
+  gap: 0.35rem;
+  justify-content: flex-end;
+  white-space: nowrap;
+}
+
+.updated-label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.filter-toggle-chevron::after {
+  content: "▼";
+  font-size: 0.65rem;
+}
+
+.flight-search-filters.is-open .filter-toggle-chevron::after {
+  content: "▲";
+}
+
+.filter-drawer {
+  display: none;
+  padding: 0 1.5rem 1rem;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.flight-search-filters.is-open .filter-drawer {
+  display: flex;
+}
+
+.filter-row-selects {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 0.75rem;
+}
+
+.pa-input__label {
+  display: block;
+  font-size: 0.8rem;
+  font-weight: 600;
+  margin-bottom: 0.35rem;
+  color: var(--filter-label);
+}
+
+.pa-select-wrap {
+  position: relative;
+}
+
+.pa-select-native {
+  width: 100%;
+  appearance: none;
+  padding: 0.55rem 2rem 0.55rem 0.75rem;
+  border: 1px solid var(--grey-3);
+  border-radius: var(--radius);
+  font-size: 0.9rem;
+  font-family: inherit;
+  background: var(--select-on-filter-bg);
+  color: var(--text);
+  cursor: pointer;
+}
+
+.pa-select-wrap::after {
+  content: "";
+  position: absolute;
+  right: 0.75rem;
+  top: 50%;
+  margin-top: -2px;
+  border: 5px solid transparent;
+  border-top-color: var(--brand-purple);
+  pointer-events: none;
+}
+
+.pa-select-native:focus {
+  outline: 2px solid var(--brand-purple);
+  outline-offset: 1px;
+}
+
+.filter-row-status {
+  margin: 0;
+  padding: 0;
+  border: none;
+}
+
+.filter-row-status legend {
+  font-weight: 600;
+  font-size: 0.9rem;
+  padding: 0;
+  margin-bottom: 0.35rem;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+  width: 100%;
+  color: var(--filter-label);
+}
+
+.fieldset-actions {
+  margin-left: auto;
+  font-weight: 400;
+  font-size: 0.8rem;
+}
+
+.fieldset-actions button {
+  background: none;
+  border: none;
+  color: #fff;
+  cursor: pointer;
+  padding: 0.15rem 0.35rem;
+  font-size: inherit;
+  font-family: inherit;
+  text-decoration: underline;
+}
+
+.fieldset-actions button:hover {
+  opacity: 0.9;
+}
+
+.checkbox-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem 1.25rem;
+}
+
+.checkbox-grid label {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  cursor: pointer;
+  font-size: 0.9rem;
+  color: var(--filter-label);
+}
+
+.filter-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.75rem 1.25rem;
+  padding-top: 0.15rem;
+}
+
+.filter-inline {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.9rem;
+  cursor: pointer;
+  color: var(--filter-label);
+}
+
+.filter-select-toolbar {
+  padding: 0.4rem 0.6rem;
+  border: 1px solid var(--grey-3);
+  border-radius: var(--radius);
+  font-size: 0.9rem;
+  background: var(--select-on-filter-bg);
+  color: var(--text);
+  font-family: inherit;
+}
+
+.btn-clear-filters {
+  background: transparent;
+  border: none;
+  color: #fff;
+  font-size: 0.9rem;
+  font-family: inherit;
+  cursor: pointer;
+  text-decoration: underline;
+  padding: 0.35rem 0;
+}
+
+.btn-clear-filters:hover {
+  opacity: 0.9;
+}
+
+/* Status banner */
+.status-banner {
+  margin: 0 1.5rem 1rem;
+  padding: 0.75rem 1rem;
+  border-radius: var(--radius);
+  background: var(--banner-warn-bg);
+  border: 1px solid var(--banner-warn-border);
+  color: var(--banner-warn-text);
+  font-size: 0.9rem;
+}
+
+.status-banner.is-loading {
+  background: var(--grey-1);
+  border-color: var(--grey-3);
+  color: var(--muted);
+}
+
+.status-banner.is-error {
+  background: var(--banner-error-bg);
+  border-color: var(--banner-error-border);
+  color: var(--banner-error-text);
+}
+
+/* Flight table */
+.table-wrap {
+  margin: 0 var(--board-gutter);
+  padding-left: var(--board-wrap-pad-x);
+  padding-right: var(--board-wrap-pad-x);
+  overflow-x: auto;
+  background: var(--surface);
+}
+
+.flight-search-res-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.875rem;
+}
+
+.flight-search-res-table th,
+.flight-search-res-table td {
+  padding: 0.7rem var(--board-cell-pad-x);
+  text-align: left;
+  border-bottom: 1px solid var(--grey-3);
+  vertical-align: middle;
+}
+
+.flight-search-res-table thead th {
+  background: var(--table-header-bg);
+  color: var(--table-header-text);
+  font-weight: 700;
+  white-space: nowrap;
+  font-size: 1rem;
+  text-transform: none;
+  letter-spacing: normal;
+}
+
+.flight-search-res-table tbody tr:hover {
+  background: var(--secondary-sand);
+}
+
+.flight-cell-main,
+.times-est-main {
+  font-weight: 700;
+}
+
+.col-times .times-est-main,
+.col-times .times-sched-sub {
+  white-space: nowrap;
+}
+
+.col-times .times-sched-sub {
+  text-decoration: line-through;
+}
+
+.cell-sub {
+  display: block;
+  font-size: 0.75rem;
+  font-weight: 400;
+  color: var(--muted);
+}
+
+.flight-cell-sub {
+  text-transform: uppercase;
+}
+
+.status-remark-main {
+  display: block;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.col-status .terminal-route-main {
+  display: block;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.col-status.status-departed .status-remark-main {
+  color: var(--status-departed);
+}
+
+.col-status.status-boarding .status-remark-main {
+  color: var(--status-boarding);
+}
+
+.col-status.status-cancelled .status-remark-main {
+  color: var(--status-cancelled);
+}
+
+.col-status.status-delayed .status-remark-main {
+  color: var(--status-delayed);
+}
+
+.col-status.status-early .status-remark-main {
+  color: var(--status-early);
+}
+
+.col-status.status-ontime .status-remark-main {
+  color: var(--status-ontime);
+}
+
+.col-status.status-scheduled .status-remark-main {
+  color: var(--status-scheduled);
+}
+
+.empty-row td {
+  text-align: center;
+  color: var(--muted);
+  padding: 2rem;
+}
+
+.site-footer {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 1.5rem;
+  font-size: 0.8rem;
+  color: var(--muted);
+  border-top: 1px solid var(--grey-3);
+}
+
+.site-footer p {
+  margin: 0;
+}
+
+@media (min-width: 768px) {
+  .filter-toggle {
+    font-size: 0.875rem;
+    padding-top: 0.8rem;
+    padding-bottom: 0.8rem;
+  }
+
+  .filter-drawer {
+    display: flex;
+    padding-top: 1rem;
+  }
+
+  .filter-row-selects {
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    gap: 0.75rem;
+  }
+
+  .filter-toggle-chevron {
+    display: none;
+  }
+}
+
+@media (max-width: 767px) {
+  :root {
+    --board-gutter: 1rem;
+    --board-wrap-pad-x: 1rem;
+  }
+
+  .status-banner {
+    margin-left: var(--board-gutter);
+    margin-right: var(--board-gutter);
+    padding-left: var(--board-wrap-pad-x);
+    padding-right: var(--board-wrap-pad-x);
+  }
+}
