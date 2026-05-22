@@ -24,6 +24,8 @@ npm run migrate
 
 ## Docker (recommended for production)
 
+**Local + mobile (ngrok):** see [docs/running-locally-docker-ngrok.md](docs/running-locally-docker-ngrok.md).
+
 **Prerequisites:** Docker Desktop or Docker Engine + Compose v2.
 
 ```bash

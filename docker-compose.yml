@@ -41,7 +41,7 @@ services:
     environment:
       DATABASE_PATH: /app/data/flights.db
       TZ: Australia/Perth
-      SCRAPE_INTERVAL_SECONDS: ${SCRAPE_INTERVAL_SECONDS:-900}
+      SCRAPE_INTERVAL_SECONDS: ${SCRAPE_INTERVAL_SECONDS:-300}
     volumes:
       - flight-data:/app/data
     entrypoint: ["/app/docker/scrape-loop.sh"]
