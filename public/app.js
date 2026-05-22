@@ -565,9 +565,9 @@ function renderTable() {
       const stTdClass = ["col-status", stClass].filter(Boolean).join(" ");
 
       return `<tr>
-        ${tableCell(flightInner, "flight-cell")}
         ${tableCell(timesInner, "col-times")}
         <td class="${stTdClass}">${stInner}</td>
+        ${tableCell(flightInner, "flight-cell")}
       </tr>`;
     })
     .join("");
