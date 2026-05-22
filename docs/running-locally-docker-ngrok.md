@@ -73,6 +73,26 @@ docker compose --profile scheduler up -d
 ngrok http 3000
 ```
 
+### After code changes (git pull or local edits)
+
+The board and API run from the Docker image. Restarting containers alone does **not** pick up new `public/` or `src/` files — rebuild and recreate:
+
+**API + scheduler (normal setup):**
+
+```bash
+docker compose build
+docker compose --profile scheduler up -d --force-recreate
+```
+
+**API only** (no scheduler profile):
+
+```bash
+docker compose build api
+docker compose up -d --force-recreate api
+```
+
+Then refresh the browser (hard refresh on the phone if the UI looks cached).
+
 ### Faster first load (optional)
 
 If you skip the one-off `collect` step, the board may be empty until the scheduler finishes its **first** scrape. Watch progress:
@@ -117,6 +137,7 @@ For **24/7** access without leaving your PC on, deploy the same Docker stack to 
 | 404 from API | No data for that direction yet — run collect or wait for scheduler. |
 | Phone link dead | Confirm `docker compose ps` shows `api` up, ngrok is still running, and you are using the current https URL. |
 | Stale flights | Confirm `scheduler` is running: `docker compose --profile scheduler up -d`. |
+| Old UI or API after `git pull` | Rebuild and recreate — see [After code changes](#after-code-changes-git-pull-or-local-edits). |
 | Port in use | Set `PORT=3001` in `.env`, recreate containers, then `ngrok http 3001`. |
 
 ## Related docs

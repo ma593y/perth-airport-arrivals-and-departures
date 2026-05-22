@@ -53,6 +53,7 @@ docker compose --profile scheduler up -d
 | `docker compose up -d api` | Flight board API + UI |
 | `docker compose --profile collect run --rm collector` | Single collect run |
 | `docker compose --profile scheduler up -d` | API + periodic collector |
+| `docker compose build` then `docker compose --profile scheduler up -d --force-recreate` | Rebuild image after code changes (see ngrok doc) |
 | `docker compose logs -f api` | API logs |
 | `docker compose down` | Stop containers (volume keeps DB) |
 
