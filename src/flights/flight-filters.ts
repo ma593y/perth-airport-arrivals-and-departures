@@ -1,3 +1,4 @@
+import { boardTimeToAwstIso } from "../config/dates.js";
 import type { ApiFlight } from "../schemas/airport-api.js";
 
 export type BoardDirection = "departures" | "arrivals";
@@ -75,9 +76,31 @@ export function sortInstant(iso: string | null | undefined): number {
 }
 
 export function flightSortMs(flight: ApiFlight): number {
-  const est = sortInstant(flight._estimatedAt);
-  if (est !== Number.POSITIVE_INFINITY) return est;
-  return sortInstant(flight._scheduledAt);
+  return boardInstantMs(flight);
+}
+
+/** Effective board time for filters: estimated, then scheduled (matches table main line). */
+export function boardInstantMs(flight: ApiFlight): number {
+  let ms = sortInstant(flight._estimatedAt);
+  if (ms !== Number.POSITIVE_INFINITY) return ms;
+
+  const boardDate = flight._boardDate ?? "";
+  if (boardDate) {
+    const fromEst = boardTimeToAwstIso(boardDate, flight.EstimatedTime);
+    ms = sortInstant(fromEst);
+    if (ms !== Number.POSITIVE_INFINITY) return ms;
+  }
+
+  ms = sortInstant(flight._scheduledAt);
+  if (ms !== Number.POSITIVE_INFINITY) return ms;
+
+  if (boardDate) {
+    const fromSched = boardTimeToAwstIso(boardDate, flight.ScheduledTime);
+    ms = sortInstant(fromSched);
+    if (ms !== Number.POSITIVE_INFINITY) return ms;
+  }
+
+  return Number.NEGATIVE_INFINITY;
 }
 
 export type FlightListFilters = {

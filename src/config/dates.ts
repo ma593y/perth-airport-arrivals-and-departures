@@ -136,6 +136,21 @@ export function boardTimeToAwstIso(
   return `${boardDate}T${hh}:${mm}:00${AWST_OFFSET}`;
 }
 
+const MS_PER_HOUR = 3600000;
+
+/**
+ * AWST ISO cutoff for SQL time-window filters (matches boardTimeToAwstIso format).
+ * Instant = now minus hoursAgo, expressed in Australia/Perth calendar/clock.
+ */
+export function cutoffAwstIso(hoursAgo: number, now = new Date()): string {
+  const instant = new Date(now.getTime() - hoursAgo * MS_PER_HOUR);
+  const boardDate = formatAwstYyyyMmDd(instant);
+  const { hour, minute } = awstClockParts(instant);
+  const hh = String(hour).padStart(2, "0");
+  const mm = String(minute).padStart(2, "0");
+  return `${boardDate}T${hh}:${mm}:00${AWST_OFFSET}`;
+}
+
 /** Parse Microsoft JSON date: /Date(1766587419126)/ */
 export function parseMsDate(msDateString: string): Date | null {
   const match = /\/Date\((\d+)\)\//.exec(msDateString);

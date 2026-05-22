@@ -1,4 +1,5 @@
-import { and, eq, gte, or, sql } from "drizzle-orm";
+import { and, eq, gte, sql } from "drizzle-orm";
+import { cutoffAwstIso } from "../config/dates.js";
 import { getDb } from "../db/client.js";
 import { flightRowToApi } from "../db/flight-row.js";
 import { flights } from "../db/schema.js";
@@ -6,6 +7,7 @@ import { loadStoreMetaSync } from "../db/store-meta.js";
 import {
   applyClientFilters,
   attachRouteTypes,
+  boardInstantMs,
   sortFlights,
   type BoardDirection,
 } from "../flights/flight-filters.js";
@@ -36,7 +38,7 @@ export function queryFlights(params: FlightsQuery): {
   if (!meta) return null;
 
   const cutoffMs = Date.now() - params.hours * MS_PER_HOUR;
-  const cutoffIso = new Date(cutoffMs).toISOString();
+  const cutoffIso = cutoffAwstIso(params.hours);
 
   const conditions = [eq(flights.nature, nature)];
 
@@ -45,13 +47,10 @@ export function queryFlights(params: FlightsQuery): {
   }
 
   conditions.push(
-    or(
-      gte(flights.estimatedAt, cutoffIso),
-      and(
-        sql`${flights.estimatedAt} IS NULL`,
-        gte(flights.scheduledAt, cutoffIso),
-      ),
-    )!,
+    gte(
+      sql`coalesce(${flights.estimatedAt}, ${flights.scheduledAt})`,
+      cutoffIso,
+    ),
   );
 
   const rows = getDb()
@@ -62,7 +61,9 @@ export function queryFlights(params: FlightsQuery): {
     .all();
 
   const apiFlights = attachRouteTypes(
-    rows.map((row) => flightRowToApi(row, direction, "unknown")),
+    rows
+      .map((row) => flightRowToApi(row, direction, "unknown"))
+      .filter((f) => boardInstantMs(f) >= cutoffMs),
     direction,
   );
 

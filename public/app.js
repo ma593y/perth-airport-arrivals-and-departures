@@ -18,6 +18,12 @@ let metaPollTimer = null;
 const HOURS_FILTER_OPTIONS = [1, 2, 4, 6, 12, 24];
 const DEFAULT_HOURS_FILTER = 2;
 const MS_PER_HOUR = 3600000;
+const FILTER_STORAGE_KEY = "perth-airport-board-filters";
+const VALID_DOM_INT = new Set(["", "domestic", "international"]);
+const VALID_TERMINAL_GROUP = new Set(["", "t1t2", "t3t4", "others"]);
+
+/** @type {{ arrivals: boolean, departures: boolean }} */
+const filtersDateHydrated = { arrivals: false, departures: false };
 
 const els = {
   flightSearchPanel: document.getElementById("flight-search-panel"),
@@ -150,6 +156,141 @@ function selectedHoursFilter() {
   const raw = Number(els.filterHours?.value);
   if (HOURS_FILTER_OPTIONS.includes(raw)) return raw;
   return DEFAULT_HOURS_FILTER;
+}
+
+function defaultDirectionFilters() {
+  return {
+    domInt: "",
+    terminalGroup: "",
+    hours: DEFAULT_HOURS_FILTER,
+    boardDate: "",
+    hideCompleted: false,
+  };
+}
+
+/** @param {unknown} raw */
+function validateDirectionFilters(raw) {
+  const d = defaultDirectionFilters();
+  if (!raw || typeof raw !== "object") return d;
+  const o = /** @type {Record<string, unknown>} */ (raw);
+  if (typeof o.domInt === "string" && VALID_DOM_INT.has(o.domInt)) {
+    d.domInt = o.domInt;
+  }
+  if (
+    typeof o.terminalGroup === "string" &&
+    VALID_TERMINAL_GROUP.has(o.terminalGroup)
+  ) {
+    d.terminalGroup = o.terminalGroup;
+  }
+  const h = Number(o.hours);
+  if (HOURS_FILTER_OPTIONS.includes(h)) d.hours = h;
+  if (typeof o.boardDate === "string") d.boardDate = o.boardDate;
+  if (typeof o.hideCompleted === "boolean") d.hideCompleted = o.hideCompleted;
+  return d;
+}
+
+function loadFilterStore() {
+  try {
+    const raw = localStorage.getItem(FILTER_STORAGE_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    const lastDirection =
+      parsed?.lastDirection === "departures"
+        ? "departures"
+        : parsed?.lastDirection === "arrivals"
+          ? "arrivals"
+          : null;
+    return {
+      lastDirection,
+      arrivals: validateDirectionFilters(parsed?.arrivals),
+      departures: validateDirectionFilters(parsed?.departures),
+    };
+  } catch {
+    return null;
+  }
+}
+
+/** @param {{ lastDirection: "departures"|"arrivals"|null, arrivals: ReturnType<typeof defaultDirectionFilters>, departures: ReturnType<typeof defaultDirectionFilters> }} store */
+function saveFilterStore(store) {
+  try {
+    localStorage.setItem(FILTER_STORAGE_KEY, JSON.stringify(store));
+  } catch {
+    /* private mode / quota */
+  }
+}
+
+function ensureFilterStore() {
+  const existing = loadFilterStore();
+  if (existing) return existing;
+  return {
+    lastDirection: null,
+    arrivals: defaultDirectionFilters(),
+    departures: defaultDirectionFilters(),
+  };
+}
+
+function readFiltersFromForm() {
+  return {
+    domInt: els.filterDomInt?.value ?? "",
+    terminalGroup: els.filterTerminalGroup?.value ?? "",
+    hours: selectedHoursFilter(),
+    boardDate: els.filterDate?.value ?? "",
+    hideCompleted: !!els.filterHideCompleted?.checked,
+  };
+}
+
+/** @param {ReturnType<typeof defaultDirectionFilters>} filters */
+function applyFiltersToForm(filters) {
+  if (els.filterHideCompleted) {
+    els.filterHideCompleted.checked = filters.hideCompleted;
+  }
+  if (els.filterDomInt) els.filterDomInt.value = filters.domInt;
+  if (els.filterTerminalGroup) {
+    els.filterTerminalGroup.value = filters.terminalGroup;
+  }
+  if (els.filterHours) {
+    els.filterHours.value = String(filters.hours);
+  }
+  if (els.filterDate) els.filterDate.value = filters.boardDate;
+}
+
+/** @param {"departures"|"arrivals"} direction */
+function getFiltersForDirection(direction) {
+  const store = loadFilterStore();
+  if (!store) return defaultDirectionFilters();
+  return direction === "departures" ? store.departures : store.arrivals;
+}
+
+function persistCurrentFilters() {
+  const store = ensureFilterStore();
+  const filters = readFiltersFromForm();
+  store.lastDirection = currentDirection;
+  if (currentDirection === "departures") {
+    store.departures = filters;
+  } else {
+    store.arrivals = filters;
+  }
+  saveFilterStore(store);
+}
+
+/** @param {"departures"|"arrivals"} direction */
+function applyStoredFiltersForDirection(direction) {
+  applyFiltersToForm(getFiltersForDirection(direction));
+  filtersDateHydrated[direction] = false;
+}
+
+function restorePendingBoardDateIfNeeded() {
+  if (filtersDateHydrated[currentDirection]) return;
+  const filters = getFiltersForDirection(currentDirection);
+  const sel = els.filterDate;
+  if (
+    sel &&
+    filters.boardDate &&
+    [...sel.options].some((o) => o.value === filters.boardDate)
+  ) {
+    sel.value = filters.boardDate;
+  }
+  filtersDateHydrated[currentDirection] = true;
 }
 
 function filterQueryParams() {
@@ -448,6 +589,7 @@ async function render() {
   updateTableHeaders(currentDirection);
   updateFilterPanelAria(currentDirection);
   rebuildDateSelect();
+  restorePendingBoardDateIfNeeded();
   updateUpdatedLabel();
   renderTable();
 }
@@ -467,9 +609,13 @@ async function refreshBoard(showLoading = false) {
 
 /** @param {"departures"|"arrivals"} direction */
 async function onDirectionChange(direction) {
+  persistCurrentFilters();
   currentDirection = direction;
   els.filterDirection.value = direction;
-  resetFiltersExceptDirection();
+  const store = ensureFilterStore();
+  store.lastDirection = direction;
+  saveFilterStore(store);
+  applyStoredFiltersForDirection(direction);
   await refreshBoard(true);
 }
 
@@ -538,12 +684,14 @@ function wireFilterListeners() {
     els.filterDate,
   ]) {
     el?.addEventListener("change", () => {
+      persistCurrentFilters();
       void refreshBoard(true);
     });
   }
 
   els.btnClearFilters?.addEventListener("click", () => {
     resetFiltersExceptDirection();
+    persistCurrentFilters();
     void refreshBoard(true);
   });
 }
@@ -551,10 +699,13 @@ function wireFilterListeners() {
 async function init() {
   wireFilterDrawer();
   wireFilterListeners();
-  els.filterDirection.value = currentDirection;
-  if (els.filterHours) {
-    els.filterHours.value = String(DEFAULT_HOURS_FILTER);
+
+  const store = loadFilterStore();
+  if (store?.lastDirection) {
+    currentDirection = store.lastDirection;
   }
+  els.filterDirection.value = currentDirection;
+  applyStoredFiltersForDirection(currentDirection);
 
   if (typeof console.time === "function") {
     console.time("board-load");
