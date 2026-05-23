@@ -18,7 +18,7 @@ export const flightsQuerySchema = z.object({
     z.literal(6),
     z.literal(12),
     z.literal(24),
-  ])).default(2),
+  ])).default(1),
   boardDate: z
     .string()
     .regex(/^(\d{4}-\d{2}-\d{2})?$/)

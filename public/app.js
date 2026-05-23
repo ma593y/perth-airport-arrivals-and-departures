@@ -5,6 +5,7 @@
  */
 
 const META_POLL_MS = 60_000;
+const NOW_DIVIDER_TICK_MS = 60_000;
 
 /** @type {{ meta: object | null, flights: object[], scrapeRevision: string | null }} */
 const boardCache = {
@@ -15,9 +16,10 @@ const boardCache = {
 
 let currentDirection = "arrivals";
 let metaPollTimer = null;
+let nowDividerTimer = null;
 
 const HOURS_FILTER_OPTIONS = [1, 2, 4, 6, 12, 24];
-const DEFAULT_HOURS_FILTER = 2;
+const DEFAULT_HOURS_FILTER = 1;
 const MS_PER_HOUR = 3600000;
 const FILTER_STORAGE_KEY = "perth-airport-board-filters";
 const VALID_DOM_INT = new Set(["", "domestic", "international"]);
@@ -519,6 +521,65 @@ function timesCellInner(f, showDateInTimes) {
   return `<span class="times-est-main">${est}</span><span class="cell-sub times-sched-sub">${sched}</span>`;
 }
 
+/** @param {string | null | undefined} iso */
+function sortInstant(iso) {
+  if (!iso || typeof iso !== "string") return Number.POSITIVE_INFINITY;
+  const ms = Date.parse(iso);
+  return Number.isFinite(ms) ? ms : Number.POSITIVE_INFINITY;
+}
+
+/** Sort key matching server sortFlights (src/flights/flight-filters.ts). */
+/** @param {object} f */
+function flightSortMs(f) {
+  let ms = sortInstant(f._estimatedAt);
+  if (ms !== Number.POSITIVE_INFINITY) return ms;
+  return sortInstant(f._scheduledAt);
+}
+
+function shouldShowNowDivider() {
+  const todayIso = boardCache.meta?.boardDate;
+  if (!todayIso) return false;
+  const selected = els.filterDate?.value ?? "";
+  if (selected === "") return true;
+  return selected === todayIso;
+}
+
+/**
+ * Row index after which to insert the now-divider (-1 = before first row).
+ * @param {object[]} flights
+ * @param {number} [nowMs]
+ * @returns {number | null}
+ */
+function nowDividerInsertIndex(flights, nowMs = Date.now()) {
+  if (!shouldShowNowDivider() || flights.length === 0) return null;
+  let insertAfter = -1;
+  for (let i = 0; i < flights.length; i++) {
+    if (flightSortMs(flights[i]) <= nowMs) insertAfter = i;
+    else break;
+  }
+  return insertAfter;
+}
+
+const NOW_DIVIDER_ROW = `<tr class="now-divider" aria-hidden="true">
+  <td colspan="3"><div class="now-divider-line" role="presentation"></div></td>
+</tr>`;
+
+/** @param {object} f @param {boolean} showDateInTimes */
+function flightRowHtml(f, showDateInTimes) {
+  const flightInner = flightCellInner(f);
+  const timesInner = timesCellInner(f, showDateInTimes);
+  const stClass = statusClass(f.Remark);
+  const stInner = statusCellHtml(f);
+  const stTdClass = ["col-status", stClass].filter(Boolean).join(" ");
+  const rowClass = f._routeType === "international" ? "row-international" : "";
+
+  return `<tr class="${rowClass}">
+        ${tableCell(timesInner, "col-times")}
+        <td class="${stTdClass}">${stInner}</td>
+        ${tableCell(flightInner, "flight-cell")}
+      </tr>`;
+}
+
 function renderTable() {
   const flights = boardCache.flights;
 
@@ -530,26 +591,35 @@ function renderTable() {
   }
 
   const showDateInTimes = els.filterDate.value === "";
+  const dividerAt = nowDividerInsertIndex(flights);
+  const parts = [];
 
-  const rows = flights
-    .map((f) => {
-      const flightInner = flightCellInner(f);
-      const timesInner = timesCellInner(f, showDateInTimes);
-      const stClass = statusClass(f.Remark);
-      const stInner = statusCellHtml(f);
-      const stTdClass = ["col-status", stClass].filter(Boolean).join(" ");
-      const rowClass =
-        f._routeType === "international" ? "row-international" : "";
+  if (dividerAt !== null && dividerAt === -1) {
+    parts.push(NOW_DIVIDER_ROW);
+  }
 
-      return `<tr class="${rowClass}">
-        ${tableCell(timesInner, "col-times")}
-        <td class="${stTdClass}">${stInner}</td>
-        ${tableCell(flightInner, "flight-cell")}
-      </tr>`;
-    })
-    .join("");
+  for (let i = 0; i < flights.length; i++) {
+    parts.push(flightRowHtml(flights[i], showDateInTimes));
+    if (dividerAt !== null && i === dividerAt) {
+      parts.push(NOW_DIVIDER_ROW);
+    }
+  }
 
-  els.flightTbody.innerHTML = rows;
+  els.flightTbody.innerHTML = parts.join("");
+}
+
+function startNowDividerTick() {
+  if (nowDividerTimer) clearInterval(nowDividerTimer);
+  nowDividerTimer = setInterval(() => {
+    if (boardCache.flights.length > 0) renderTable();
+  }, NOW_DIVIDER_TICK_MS);
+}
+
+function stopNowDividerTick() {
+  if (nowDividerTimer) {
+    clearInterval(nowDividerTimer);
+    nowDividerTimer = null;
+  }
 }
 
 async function loadBoard() {
@@ -577,7 +647,9 @@ async function refreshBoard(showLoading = false) {
     await loadBoard();
     hideBanner();
     await render();
+    startNowDividerTick();
   } catch (err) {
+    stopNowDividerTick();
     setBanner(err instanceof Error ? err.message : String(err), "error");
     els.flightTbody.innerHTML = "";
     els.filterCount.textContent = "";

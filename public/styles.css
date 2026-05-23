@@ -415,6 +415,23 @@ a:hover {
   background: var(--row-intl-bg-hover);
 }
 
+.flight-search-res-table tbody tr.now-divider:hover {
+  background: transparent;
+}
+
+.flight-search-res-table tbody tr.now-divider td {
+  padding: 0.35rem var(--board-cell-pad-x);
+  border-bottom: none;
+  vertical-align: middle;
+}
+
+.now-divider-line {
+  height: 0;
+  border: none;
+  border-top: 2px solid var(--brand-orange-medium);
+  margin: 0;
+}
+
 .flight-cell-main,
 .times-est-main {
   font-weight: 700;
