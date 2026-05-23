@@ -1,0 +1,30 @@
+---
+description: Rebuild Docker image and recreate scheduler stack after code changes so the board serves updated files.
+alwaysApply: true
+---
+
+# Docker rebuild after changes
+
+The flight board and API run from a Docker image. Only the SQLite volume is bind-mounted; `public/`, `src/`, and server code are copied at **build** time. Restarting containers without rebuilding does **not** pick up disk edits.
+
+## When this applies
+
+After changes under `public/`, `src/`, `scripts/`, `Dockerfile`, or `docker-compose.yml`; when verifying UI/API against Docker; when the user says changes are not visible on the board.
+
+## Required command (default workflow)
+
+```bash
+docker compose build; docker compose --profile scheduler up -d --force-recreate
+```
+
+Then hard-refresh the browser if the UI looks cached.
+
+## Agent behavior
+
+- After implementing or suggesting application code changes, remind the user to run the command above (or offer to run it via the shell).
+- Do not assume `localhost:3000` reflects files on disk until the image is rebuilt and containers recreated.
+
+## Alternatives
+
+- **API only** (no scheduler): `docker compose build api` then `docker compose up -d --force-recreate api`
+- **Faster local UI loop** (optional): `npm run dev` serves from disk without Docker rebuild; not a substitute for the user's Docker workflow when testing the full stack.
