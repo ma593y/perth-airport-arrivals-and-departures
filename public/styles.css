@@ -39,6 +39,8 @@
   --board-wrap-pad-x: 0px;
   --board-cell-pad-x: 0.85rem;
   --board-content-inset: var(--board-cell-pad-x);
+  --row-intl-bg: #eef4f7;
+  --row-intl-bg-hover: #e3ecf2;
 }
 
 *,
@@ -403,6 +405,14 @@ a:hover {
 
 .flight-search-res-table tbody tr:hover {
   background: var(--secondary-sand);
+}
+
+.flight-search-res-table tbody tr.row-international {
+  background: var(--row-intl-bg);
+}
+
+.flight-search-res-table tbody tr.row-international:hover {
+  background: var(--row-intl-bg-hover);
 }
 
 .flight-cell-main,

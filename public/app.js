@@ -538,8 +538,10 @@ function renderTable() {
       const stClass = statusClass(f.Remark);
       const stInner = statusCellHtml(f);
       const stTdClass = ["col-status", stClass].filter(Boolean).join(" ");
+      const rowClass =
+        f._routeType === "international" ? "row-international" : "";
 
-      return `<tr>
+      return `<tr class="${rowClass}">
         ${tableCell(timesInner, "col-times")}
         <td class="${stTdClass}">${stInner}</td>
         ${tableCell(flightInner, "flight-cell")}
