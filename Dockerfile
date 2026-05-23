@@ -25,7 +25,8 @@ RUN npx playwright install --with-deps chromium
 
 ENV NODE_ENV=production
 
-RUN chmod +x docker/entrypoint-api.sh docker/entrypoint-collect.sh docker/scrape-loop.sh
+RUN sed -i 's/\r$//' docker/*.sh \
+  && chmod +x docker/entrypoint-api.sh docker/entrypoint-collect.sh docker/scrape-loop.sh
 
 EXPOSE 3000
 

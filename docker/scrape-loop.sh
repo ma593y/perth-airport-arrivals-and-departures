@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/sh
 set -e
 
 db="${DATABASE_PATH:-/app/data/flights.db}"
