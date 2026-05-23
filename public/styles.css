@@ -38,9 +38,7 @@
   --board-gutter: 1.5rem;
   --board-wrap-pad-x: 0px;
   --board-cell-pad-x: 0.85rem;
-  --board-content-inset: calc(
-    var(--board-gutter) + var(--board-wrap-pad-x) + var(--board-cell-pad-x)
-  );
+  --board-content-inset: var(--board-cell-pad-x);
 }
 
 *,
@@ -195,7 +193,7 @@ a:hover {
 
 .filter-drawer {
   display: none;
-  padding: 0 1.5rem 1rem;
+  padding: 0 var(--board-content-inset) 1rem;
   flex-direction: column;
   gap: 0.75rem;
 }
@@ -373,9 +371,8 @@ a:hover {
 
 /* Flight table */
 .table-wrap {
-  margin: 0 var(--board-gutter);
-  padding-left: var(--board-wrap-pad-x);
-  padding-right: var(--board-wrap-pad-x);
+  margin: 0;
+  padding: 0;
   overflow-x: auto;
   background: var(--surface);
 }
@@ -422,6 +419,11 @@ a:hover {
   text-decoration: line-through;
 }
 
+.col-status .status-remark-main,
+.col-status .terminal-route-sub {
+  white-space: nowrap;
+}
+
 .cell-sub {
   display: block;
   font-size: 0.75rem;
@@ -433,13 +435,11 @@ a:hover {
   text-transform: uppercase;
 }
 
-.status-remark-main {
-  display: block;
+.terminal-route-sub {
   font-weight: 700;
-  text-transform: uppercase;
 }
 
-.col-status .terminal-route-main {
+.status-remark-main {
   display: block;
   font-weight: 700;
   text-transform: uppercase;
@@ -482,14 +482,28 @@ a:hover {
 .site-footer {
   max-width: 1200px;
   margin: 0 auto;
-  padding: 1.5rem;
+  padding: 1.25rem var(--board-content-inset) 1.5rem;
   font-size: 0.8rem;
   color: var(--muted);
+  text-align: center;
   border-top: 1px solid var(--grey-3);
 }
 
-.site-footer p {
+.site-footer-lead {
+  margin: 0 0 0.35rem;
+}
+
+.site-footer-meta {
   margin: 0;
+}
+
+.site-footer a {
+  color: var(--link);
+  text-decoration: underline;
+}
+
+.site-footer a:hover {
+  color: var(--link-hover);
 }
 
 @media (min-width: 768px) {

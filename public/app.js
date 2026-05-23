@@ -517,9 +517,17 @@ function terminalDisplay(f) {
 
 /** @param {object} f */
 function terminalRouteCellInner(f) {
-  const main = escapeHtml(terminalDisplay(f));
-  const sub = escapeHtml(routeTypeLabel(f));
-  return `<span class="terminal-route-main">${main}</span><span class="cell-sub terminal-route-sub">${sub}</span>`;
+  const term = terminalDisplay(f);
+  const route = routeTypeLabel(f);
+  let line;
+  if (term === "—") {
+    line = "—";
+  } else if (route === "—") {
+    line = term;
+  } else {
+    line = `${term} · ${route}`;
+  }
+  return `<span class="cell-sub terminal-route-sub">${escapeHtml(line)}</span>`;
 }
 
 /**
