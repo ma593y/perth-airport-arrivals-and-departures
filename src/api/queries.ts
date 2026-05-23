@@ -60,6 +60,8 @@ export function queryFlights(params: FlightsQuery): {
     .limit(MAX_FLIGHTS)
     .all();
 
+  // SQL cutoff uses AWST ISO strings; JS filter uses epoch ms for rows where
+  // scheduled/estimated fields did not round-trip cleanly into SQL comparison.
   const apiFlights = attachRouteTypes(
     rows
       .map((row) => flightRowToApi(row, direction, "unknown"))

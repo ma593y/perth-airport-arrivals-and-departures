@@ -8,7 +8,7 @@ This guide explains how the flight board, data collection, and ngrok fit togethe
 |--------|------------|----------------|
 | **Web app (API)** | Docker service `api` | Serves the flight board in the browser and answers `/api/flights`. It **only reads** the database. It does **not** fetch flights from Perth Airport. |
 | **Collect** | One-shot job (`collector`) | Opens Perth Airport in a headless browser, scrapes the boards, **writes** into SQLite (`flights.db`). Runs once and **stops**. |
-| **Scheduler** | Docker service `scheduler` | Same scrape as collect, but **every 15 minutes** by default (`SCRAPE_INTERVAL_SECONDS=900`), forever. Keeps the database fresh. |
+| **Scheduler** | Docker service `scheduler` | Same scrape as collect, but **every 5 minutes** by default (`SCRAPE_INTERVAL_SECONDS=300`), forever. Keeps the database fresh. |
 | **ngrok** | Program on your PC (not in Docker) | Gives you a public `https://….ngrok….` link that forwards to `localhost:3000` so your phone can open the site from anywhere. |
 
 All Docker services share the `flight-data` volume (see [docker-compose.yml](../docker-compose.yml)).
@@ -128,6 +128,15 @@ This project uses ngrok on your machine, not as a Compose service:
 - Free ngrok URLs often **change** when you restart the tunnel; update your phone bookmark or use a reserved domain on a paid plan.
 
 For **24/7** access without leaving your PC on, deploy the same Docker stack to a VPS or cloud host instead of relying on ngrok at home.
+
+### Security when using ngrok
+
+An ngrok tunnel exposes your **read-only** flight board and `/api/*` endpoints to the public internet. There is no login on the API by design.
+
+- Do not leave a tunnel running when you are not using it.
+- On paid ngrok plans, use **OAuth** or **IP restrictions** on the tunnel if available.
+- Optional: set `CORS_ORIGIN` to your ngrok `https://` URL so browsers only call the API from that origin (see README).
+- For anything beyond personal use, deploy to a host you control instead of tunneling your home PC.
 
 ## Troubleshooting
 

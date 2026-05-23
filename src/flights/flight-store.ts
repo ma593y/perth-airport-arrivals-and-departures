@@ -1,4 +1,4 @@
-import { and, eq, notInArray, sql } from "drizzle-orm";
+import { and, eq, inArray, notInArray, sql } from "drizzle-orm";
 import { nextDayHoursBeforeMidnight } from "../config/config.js";
 import { getDb, getSqlite } from "../db/client.js";
 import { databasePath } from "../db/paths.js";
@@ -36,6 +36,36 @@ export type MergeFlightStoreResult = {
 
 const allowedDateSet = (dates: string[]) => new Set(dates);
 
+const HASH_LOOKUP_CHUNK = 500;
+
+type PendingRow = {
+  insertRow: NonNullable<ReturnType<typeof flightResultToInsert>>;
+};
+
+function loadExistingHashes(
+  db: ReturnType<typeof getDb>,
+  nature: FlightNature,
+  flightKeys: string[],
+): Map<string, string> {
+  const map = new Map<string, string>();
+  for (let i = 0; i < flightKeys.length; i += HASH_LOOKUP_CHUNK) {
+    const chunk = flightKeys.slice(i, i + HASH_LOOKUP_CHUNK);
+    if (chunk.length === 0) continue;
+    const rows = db
+      .select({
+        flightKey: flights.flightKey,
+        contentHash: flights.contentHash,
+      })
+      .from(flights)
+      .where(and(eq(flights.nature, nature), inArray(flights.flightKey, chunk)))
+      .all();
+    for (const row of rows) {
+      map.set(row.flightKey, row.contentHash);
+    }
+  }
+  return map;
+}
+
 export async function mergeFlightStore(
   nature: FlightNature,
   payloads: FlightStorePayload[],
@@ -57,6 +87,8 @@ export async function mergeFlightStore(
   let skipped = 0;
 
   const mergeTx = sqlite.transaction(() => {
+    const pending: PendingRow[] = [];
+
     for (const { data } of payloads) {
       for (const flight of data.Results) {
         const flightBoardDate = boardDateFromFlightKey(flight.FlightKey);
@@ -81,46 +113,51 @@ export async function mergeFlightStore(
           continue;
         }
 
-        const existing = db
-          .select({ contentHash: flights.contentHash })
-          .from(flights)
-          .where(eq(flights.flightKey, flight.FlightKey))
-          .get();
-
-        if (existing?.contentHash === insertRow.contentHash) {
-          unchanged += 1;
-          continue;
-        }
-
-        db.insert(flights)
-          .values(insertRow)
-          .onConflictDoUpdate({
-            target: flights.flightKey,
-            set: {
-              nature: insertRow.nature,
-              airlineLogo: insertRow.airlineLogo,
-              airlineName: insertRow.airlineName,
-              flightNumber: insertRow.flightNumber,
-              portName: insertRow.portName,
-              flightNature: insertRow.flightNature,
-              terminal: insertRow.terminal,
-              estimatedTime: insertRow.estimatedTime,
-              scheduledTime: insertRow.scheduledTime,
-              status: insertRow.status,
-              remark: insertRow.remark,
-              url: insertRow.url,
-              codeShares: insertRow.codeShares,
-              contentHash: insertRow.contentHash,
-              updatedAt: insertRow.updatedAt,
-              boardDate: insertRow.boardDate,
-              scheduledAt: insertRow.scheduledAt,
-              estimatedAt: insertRow.estimatedAt,
-            },
-          })
-          .run();
-
-        changed += 1;
+        pending.push({ insertRow });
       }
+    }
+
+    const existingHashes = loadExistingHashes(
+      db,
+      nature,
+      pending.map((p) => p.insertRow.flightKey),
+    );
+
+    for (const { insertRow } of pending) {
+      const existingHash = existingHashes.get(insertRow.flightKey);
+      if (existingHash === insertRow.contentHash) {
+        unchanged += 1;
+        continue;
+      }
+
+      db.insert(flights)
+        .values(insertRow)
+        .onConflictDoUpdate({
+          target: flights.flightKey,
+          set: {
+            nature: insertRow.nature,
+            airlineLogo: insertRow.airlineLogo,
+            airlineName: insertRow.airlineName,
+            flightNumber: insertRow.flightNumber,
+            portName: insertRow.portName,
+            flightNature: insertRow.flightNature,
+            terminal: insertRow.terminal,
+            estimatedTime: insertRow.estimatedTime,
+            scheduledTime: insertRow.scheduledTime,
+            status: insertRow.status,
+            remark: insertRow.remark,
+            url: insertRow.url,
+            codeShares: insertRow.codeShares,
+            contentHash: insertRow.contentHash,
+            updatedAt: insertRow.updatedAt,
+            boardDate: insertRow.boardDate,
+            scheduledAt: insertRow.scheduledAt,
+            estimatedAt: insertRow.estimatedAt,
+          },
+        })
+        .run();
+
+      changed += 1;
     }
 
     let prunedCount = 0;

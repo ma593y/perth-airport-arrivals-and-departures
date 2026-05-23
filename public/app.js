@@ -1,5 +1,6 @@
 /**
- * Perth Airport flight board — reads /api/flights
+ * Perth Airport flight board — reads /api/flights.
+ * Flight list filtering is server-side; see src/flights/flight-filters.ts.
  * @see README.md Flight board
  */
 
@@ -59,17 +60,6 @@ function terminalKey(terminal) {
   return terminal;
 }
 
-const TERMINAL_GROUP_T1T2 = new Set(["T1", "T2"]);
-const TERMINAL_GROUP_T3T4 = new Set(["T3", "T4"]);
-
-/** @returns {"t1t2"|"t3t4"|"others"} */
-function terminalGroup(terminal) {
-  const t = terminalKey(terminal);
-  if (TERMINAL_GROUP_T1T2.has(t)) return "t1t2";
-  if (TERMINAL_GROUP_T3T4.has(t)) return "t3t4";
-  return "others";
-}
-
 const TX_TERMINALS = new Set(["T1", "T2", "T3", "T4"]);
 
 /** @param {object} flight */
@@ -96,14 +86,6 @@ function statusClass(remark) {
     return "status-boarding";
   }
   return "";
-}
-
-function isCompleted(flight) {
-  const r = remarkKey(flight.Remark);
-  if (r === "Cancelled") return true;
-  if (flight._direction === "departures" && r === "Departed") return true;
-  if (flight._direction === "arrivals" && r === "Landed") return true;
-  return false;
 }
 
 const AWST_CLOCK_PARTS = {
@@ -142,13 +124,6 @@ function rawClockTo12h(timeStr) {
 /** @param {string | null | undefined} timeStr */
 function formatTime(timeStr) {
   return rawClockTo12h(timeStr);
-}
-
-/** @param {string | null | undefined} iso */
-function sortInstant(iso) {
-  if (!iso || typeof iso !== "string") return Number.POSITIVE_INFINITY;
-  const ms = Date.parse(iso);
-  return Number.isFinite(ms) ? ms : Number.POSITIVE_INFINITY;
 }
 
 /** @returns {number} */
@@ -546,25 +521,17 @@ function timesCellInner(f, showDateInTimes) {
 
 function renderTable() {
   const flights = boardCache.flights;
-  const total = flights.length;
-  const sorted = [...flights].sort((a, b) => {
-    let cmp = sortInstant(a._estimatedAt) - sortInstant(b._estimatedAt);
-    if (cmp !== 0) return cmp;
-    cmp = sortInstant(a._scheduledAt) - sortInstant(b._scheduledAt);
-    if (cmp !== 0) return cmp;
-    return (a.FlightNumber ?? "").localeCompare(b.FlightNumber ?? "");
-  });
 
-  els.filterCount.textContent = `(${sorted.length})`;
+  els.filterCount.textContent = `(${flights.length})`;
 
-  if (sorted.length === 0) {
+  if (flights.length === 0) {
     els.flightTbody.innerHTML = `<tr class="empty-row"><td colspan="3">No flights match</td></tr>`;
     return;
   }
 
   const showDateInTimes = els.filterDate.value === "";
 
-  const rows = sorted
+  const rows = flights
     .map((f) => {
       const flightInner = flightCellInner(f);
       const timesInner = timesCellInner(f, showDateInTimes);

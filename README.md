@@ -21,6 +21,8 @@ npm run migrate
 | `npm run dev` | API + flight board at http://localhost:3000/ |
 | `npm run start` | Same as `dev` (production / Docker API) |
 | `npm run db:generate` | Generate Drizzle migrations from schema |
+| `npm run typecheck` | TypeScript check (`tsc --noEmit`) |
+| `npm run test` | Unit tests (`node:test`) |
 
 ## Docker (recommended for production)
 
@@ -41,7 +43,7 @@ Open **http://localhost:3000/**
 docker compose --profile collect run --rm collector
 ```
 
-**Continuous collection** (default every 15 minutes):
+**Continuous collection** (default every 5 minutes):
 
 ```bash
 docker compose --profile scheduler up -d
@@ -80,6 +82,7 @@ flowchart LR
 
 | Endpoint | Description |
 |----------|-------------|
+| `GET /api/health` | `{ ok, lastScrapeAt }` for uptime checks |
 | `GET /api/meta?direction=arrivals\|departures` | Store metadata |
 | `GET /api/flights?...` | Filtered flight list + meta |
 
@@ -91,8 +94,29 @@ Query parameters for `/api/flights`: `direction`, `domInt`, `terminalGroup`, `ho
 |----------|---------|---------|
 | `DATABASE_PATH` | `data/flights.db` | SQLite file path |
 | `PORT` | `3000` | API server port |
-| `SCRAPE_INTERVAL_SECONDS` | `900` | Scheduler interval (Docker) |
+| `SCRAPE_INTERVAL_SECONDS` | `300` | Scheduler interval in seconds (Docker; default 5 minutes) |
 | `SCRAPE_NEXT_DAY_HOURS_BEFORE_MIDNIGHT` | `3` | When to prefetch tomorrow's board |
+| `CORS_ORIGIN` | `*` | Allowed browser origin (`*` or your ngrok `https://` URL) |
+
+## Development
+
+Requires Node 22. See [CONTRIBUTING.md](CONTRIBUTING.md).
+
+```bash
+npm run typecheck
+npm run test
+```
+
+CI runs both on pull requests to `main`.
+
+## Security
+
+The API is **read-only** and has **no authentication**. Do not expose it on the public internet without considering risk.
+
+- **Rate limit:** 120 requests per minute per IP on `/api/*`.
+- **Headers:** `X-Content-Type-Options`, `X-Frame-Options`, Content-Security-Policy on responses.
+- **CORS:** Set `CORS_ORIGIN` to your ngrok URL when tunneling; default `*` is for local dev.
+- **ngrok:** See [docs/running-locally-docker-ngrok.md](docs/running-locally-docker-ngrok.md#security-when-using-ngrok).
 
 ## Quick start
 
@@ -103,6 +127,12 @@ npm run collect
 npm run dev
 ```
 
+## Legal / data source
+
+This project is **not affiliated with Perth Airport**. Flight data is obtained by automated access to the [official flights page](https://www.perthairport.com.au/flights/departures-and-arrivals). That access may be restricted by site terms; operators are responsible for compliance. Data is provided **as-is** with no warranty of accuracy or timeliness — always confirm at the official board before travel decisions.
+
+Licensed under [MIT](LICENSE).
+
 ## Troubleshooting
 
 - **Docker: empty board** — Run `docker compose --profile collect run --rm collector` once.
@@ -110,3 +140,4 @@ npm run dev
 - **Node 24 on Windows** — Use Docker or install Node 22 LTS.
 - **Port in use** — Set `PORT=3001 npm run dev`.
 - **Playwright browser missing** — `npx playwright install chromium`
+- **Collect failures** — [docs/scraping-and-failures.md](docs/scraping-and-failures.md)
