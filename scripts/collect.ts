@@ -6,6 +6,7 @@ import {
   minutesUntilMidnightAwst,
   todayAwstYyyyMmDd,
   tomorrowAwstYyyyMmDd,
+  yesterdayAwstYyyyMmDd,
 } from "../src/config/dates.js";
 import {
   mergeFlightStore,
@@ -31,7 +32,7 @@ function logPrefetchWindow(now: Date): void {
 }
 
 function buildAllowedBoardDates(fetchNextDay: boolean, now: Date): string[] {
-  const dates = [todayAwstYyyyMmDd(now)];
+  const dates = [yesterdayAwstYyyyMmDd(now), todayAwstYyyyMmDd(now)];
   if (fetchNextDay) {
     dates.push(tomorrowAwstYyyyMmDd(now));
   }

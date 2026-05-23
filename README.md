@@ -71,6 +71,7 @@ flowchart LR
 ```
 
 - **Collect** (`npm run collect`): Playwright → Zod validate → content-hash compare → upsert changed rows only.
+- **Retention**: Each collect keeps **yesterday + today** in SQLite (AWST board dates). During the prefetch window (`SCRAPE_NEXT_DAY_HOURS_BEFORE_MIDNIGHT`, default 3h before AWST midnight), **tomorrow** is retained as well. Older board dates are pruned. Collect does not re-fetch yesterday; those rows are kept from when that day was still today (or tomorrow during prefetch).
 - **Database**: SQLite with WAL; one writer (collect), many readers (API).
 - **API**: `GET /api/meta`, `GET /api/flights` (Zod-validated query params).
 - **UI** ([`public/`](public/)): Polls `/api/meta` every 60s; refetches when `scrapeRevision` changes.

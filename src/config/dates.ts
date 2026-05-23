@@ -39,6 +39,11 @@ function awstYyyyMmDdPlusDays(dayOffset: number, now = new Date()): string {
   return formatAwstYyyyMmDd(shifted);
 }
 
+/** Yesterday's board date in AWST: YYYY-MM-DD */
+export function yesterdayAwstYyyyMmDd(now = new Date()): string {
+  return awstYyyyMmDdPlusDays(-1, now);
+}
+
 /** Tomorrow's board date in AWST: YYYY-MM-DD */
 export function tomorrowAwstYyyyMmDd(now = new Date()): string {
   return awstYyyyMmDdPlusDays(1, now);
