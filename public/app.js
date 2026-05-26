@@ -18,8 +18,9 @@ let currentDirection = "arrivals";
 let metaPollTimer = null;
 let nowDividerTimer = null;
 
-const HOURS_FILTER_OPTIONS = [1, 2, 4, 6, 12, 24];
-const DEFAULT_HOURS_FILTER = 1;
+const TIME_WINDOW_HOURS_OPTIONS = [1, 2, 4, 6, 12, 24];
+const DEFAULT_LAST_HOURS_FILTER = 1;
+const DEFAULT_NEXT_HOURS_FILTER = 6;
 const MS_PER_HOUR = 3600000;
 const FILTER_STORAGE_KEY = "perth-airport-board-filters";
 const VALID_DOM_INT = new Set(["", "domestic", "international"]);
@@ -36,7 +37,8 @@ const els = {
   filterDirection: document.getElementById("filter-direction"),
   filterDomInt: document.getElementById("filter-dom-int"),
   filterTerminalGroup: document.getElementById("filter-terminal-group"),
-  filterHours: document.getElementById("filter-hours"),
+  filterLastHours: document.getElementById("filter-last-hours"),
+  filterNextHours: document.getElementById("filter-next-hours"),
   filterDate: document.getElementById("filter-date"),
   filterToggleLabel: document.querySelector(".filter-toggle-label"),
   filterHideCompleted: document.getElementById("filter-hide-completed"),
@@ -129,17 +131,25 @@ function formatTime(timeStr) {
 }
 
 /** @returns {number} */
-function selectedHoursFilter() {
-  const raw = Number(els.filterHours?.value);
-  if (HOURS_FILTER_OPTIONS.includes(raw)) return raw;
-  return DEFAULT_HOURS_FILTER;
+function selectedLastHoursFilter() {
+  const raw = Number(els.filterLastHours?.value);
+  if (TIME_WINDOW_HOURS_OPTIONS.includes(raw)) return raw;
+  return DEFAULT_LAST_HOURS_FILTER;
+}
+
+/** @returns {number} */
+function selectedNextHoursFilter() {
+  const raw = Number(els.filterNextHours?.value);
+  if (TIME_WINDOW_HOURS_OPTIONS.includes(raw)) return raw;
+  return DEFAULT_NEXT_HOURS_FILTER;
 }
 
 function defaultDirectionFilters() {
   return {
     domInt: "",
     terminalGroup: "",
-    hours: DEFAULT_HOURS_FILTER,
+    lastHours: DEFAULT_LAST_HOURS_FILTER,
+    nextHours: DEFAULT_NEXT_HOURS_FILTER,
     boardDate: "",
     hideCompleted: false,
   };
@@ -159,8 +169,10 @@ function validateDirectionFilters(raw) {
   ) {
     d.terminalGroup = o.terminalGroup;
   }
-  const h = Number(o.hours);
-  if (HOURS_FILTER_OPTIONS.includes(h)) d.hours = h;
+  const lastH = Number(o.lastHours ?? o.hours);
+  if (TIME_WINDOW_HOURS_OPTIONS.includes(lastH)) d.lastHours = lastH;
+  const nextH = Number(o.nextHours);
+  if (TIME_WINDOW_HOURS_OPTIONS.includes(nextH)) d.nextHours = nextH;
   if (typeof o.boardDate === "string") d.boardDate = o.boardDate;
   if (typeof o.hideCompleted === "boolean") d.hideCompleted = o.hideCompleted;
   return d;
@@ -210,7 +222,8 @@ function readFiltersFromForm() {
   return {
     domInt: els.filterDomInt?.value ?? "",
     terminalGroup: els.filterTerminalGroup?.value ?? "",
-    hours: selectedHoursFilter(),
+    lastHours: selectedLastHoursFilter(),
+    nextHours: selectedNextHoursFilter(),
     boardDate: els.filterDate?.value ?? "",
     hideCompleted: !!els.filterHideCompleted?.checked,
   };
@@ -225,8 +238,11 @@ function applyFiltersToForm(filters) {
   if (els.filterTerminalGroup) {
     els.filterTerminalGroup.value = filters.terminalGroup;
   }
-  if (els.filterHours) {
-    els.filterHours.value = String(filters.hours);
+  if (els.filterLastHours) {
+    els.filterLastHours.value = String(filters.lastHours);
+  }
+  if (els.filterNextHours) {
+    els.filterNextHours.value = String(filters.nextHours);
   }
   if (els.filterDate) els.filterDate.value = filters.boardDate;
 }
@@ -275,7 +291,8 @@ function filterQueryParams() {
   params.set("direction", currentDirection);
   params.set("domInt", els.filterDomInt?.value ?? "");
   params.set("terminalGroup", els.filterTerminalGroup?.value ?? "");
-  params.set("hours", String(selectedHoursFilter()));
+  params.set("lastHours", String(selectedLastHoursFilter()));
+  params.set("nextHours", String(selectedNextHoursFilter()));
   params.set("boardDate", els.filterDate?.value ?? "");
   params.set(
     "hideCompleted",
@@ -412,8 +429,11 @@ function resetFiltersExceptDirection() {
   els.filterHideCompleted.checked = false;
   els.filterDomInt.value = "";
   els.filterTerminalGroup.value = "";
-  if (els.filterHours) {
-    els.filterHours.value = String(DEFAULT_HOURS_FILTER);
+  if (els.filterLastHours) {
+    els.filterLastHours.value = String(DEFAULT_LAST_HOURS_FILTER);
+  }
+  if (els.filterNextHours) {
+    els.filterNextHours.value = String(DEFAULT_NEXT_HOURS_FILTER);
   }
   els.filterDate.value = "";
 }
@@ -769,7 +789,8 @@ function wireFilterListeners() {
     els.filterHideCompleted,
     els.filterDomInt,
     els.filterTerminalGroup,
-    els.filterHours,
+    els.filterLastHours,
+    els.filterNextHours,
     els.filterDate,
   ]) {
     el?.addEventListener("change", () => {

@@ -156,6 +156,19 @@ export function cutoffAwstIso(hoursAgo: number, now = new Date()): string {
   return `${boardDate}T${hh}:${mm}:00${AWST_OFFSET}`;
 }
 
+/**
+ * AWST ISO horizon for SQL time-window filters (matches boardTimeToAwstIso format).
+ * Instant = now plus hoursAhead, expressed in Australia/Perth calendar/clock.
+ */
+export function horizonAwstIso(hoursAhead: number, now = new Date()): string {
+  const instant = new Date(now.getTime() + hoursAhead * MS_PER_HOUR);
+  const boardDate = formatAwstYyyyMmDd(instant);
+  const { hour, minute } = awstClockParts(instant);
+  const hh = String(hour).padStart(2, "0");
+  const mm = String(minute).padStart(2, "0");
+  return `${boardDate}T${hh}:${mm}:00${AWST_OFFSET}`;
+}
+
 /** Parse Microsoft JSON date: /Date(1766587419126)/ */
 export function parseMsDate(msDateString: string): Date | null {
   const match = /\/Date\((\d+)\)\//.exec(msDateString);

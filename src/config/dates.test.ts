@@ -3,6 +3,8 @@ import { describe, it } from "node:test";
 import {
   boardDateFromFlightKey,
   boardTimeToAwstIso,
+  cutoffAwstIso,
+  horizonAwstIso,
   minutesUntilMidnightAwst,
   shouldFetchNextDayAwst,
   todayAwstYyyyMmDd,
@@ -66,5 +68,17 @@ describe("minutesUntilMidnightAwst", () => {
   it("is non-negative", () => {
     assert.ok(minutesUntilMidnightAwst(new Date()) >= 0);
     assert.ok(minutesUntilMidnightAwst(new Date()) <= 24 * 60);
+  });
+});
+
+describe("time window AWST ISO helpers", () => {
+  const noonAwst = new Date("2026-05-23T04:00:00.000Z");
+
+  it("cutoffAwstIso subtracts hours in AWST", () => {
+    assert.equal(cutoffAwstIso(2, noonAwst), "2026-05-23T10:00:00+08:00");
+  });
+
+  it("horizonAwstIso adds hours in AWST", () => {
+    assert.equal(horizonAwstIso(6, noonAwst), "2026-05-23T18:00:00+08:00");
   });
 });

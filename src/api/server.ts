@@ -105,7 +105,8 @@ app.get("/api/flights", (c) => {
     direction: c.req.query("direction"),
     domInt: c.req.query("domInt") ?? "",
     terminalGroup: c.req.query("terminalGroup") ?? "",
-    hours: c.req.query("hours"),
+    lastHours: c.req.query("lastHours") ?? c.req.query("hours"),
+    nextHours: c.req.query("nextHours"),
     boardDate: c.req.query("boardDate") ?? "",
     hideCompleted: c.req.query("hideCompleted"),
   });

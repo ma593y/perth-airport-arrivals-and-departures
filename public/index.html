@@ -84,17 +84,33 @@
             </div>
 
             <div class="pa-input__outer">
-              <label class="pa-input__label" for="filter-hours"
-                >Time window</label
+              <label class="pa-input__label" for="filter-last-hours"
+                >Last</label
               >
               <div class="pa-select-wrap">
-                <select id="filter-hours" class="pa-select-native">
+                <select id="filter-last-hours" class="pa-select-native">
                   <option value="1" selected>Last 1 hour</option>
                   <option value="2">Last 2 hours</option>
                   <option value="4">Last 4 hours</option>
                   <option value="6">Last 6 hours</option>
                   <option value="12">Last 12 hours</option>
                   <option value="24">Last 24 hours</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="pa-input__outer">
+              <label class="pa-input__label" for="filter-next-hours"
+                >Next</label
+              >
+              <div class="pa-select-wrap">
+                <select id="filter-next-hours" class="pa-select-native">
+                  <option value="1">Next 1 hour</option>
+                  <option value="2">Next 2 hours</option>
+                  <option value="4">Next 4 hours</option>
+                  <option value="6" selected>Next 6 hours</option>
+                  <option value="12">Next 12 hours</option>
+                  <option value="24">Next 24 hours</option>
                 </select>
               </div>
             </div>

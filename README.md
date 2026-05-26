@@ -86,7 +86,7 @@ flowchart LR
 | `GET /api/meta?direction=arrivals\|departures` | Store metadata |
 | `GET /api/flights?...` | Filtered flight list + meta |
 
-Query parameters for `/api/flights`: `direction`, `domInt`, `terminalGroup`, `hours`, `boardDate`, `hideCompleted`.
+Query parameters for `/api/flights`: `direction`, `domInt`, `terminalGroup`, `lastHours`, `nextHours`, `boardDate`, `hideCompleted`. (`hours` is accepted as an alias for `lastHours`.)
 
 ## Environment variables
 

@@ -7,18 +7,23 @@ export const metaQuerySchema = z.object({
   direction: boardDirectionSchema,
 });
 
-export const flightsQuerySchema = z.object({
-  direction: boardDirectionSchema,
-  domInt: z.enum(["", "domestic", "international"]).default(""),
-  terminalGroup: z.enum(["", "t1t2", "t3t4", "others"]).default(""),
-  hours: z.coerce.number().pipe(z.union([
+const timeWindowHoursSchema = z.coerce.number().pipe(
+  z.union([
     z.literal(1),
     z.literal(2),
     z.literal(4),
     z.literal(6),
     z.literal(12),
     z.literal(24),
-  ])).default(1),
+  ]),
+);
+
+export const flightsQuerySchema = z.object({
+  direction: boardDirectionSchema,
+  domInt: z.enum(["", "domestic", "international"]).default(""),
+  terminalGroup: z.enum(["", "t1t2", "t3t4", "others"]).default(""),
+  lastHours: timeWindowHoursSchema.default(1),
+  nextHours: timeWindowHoursSchema.default(6),
   boardDate: z
     .string()
     .regex(/^(\d{4}-\d{2}-\d{2})?$/)
