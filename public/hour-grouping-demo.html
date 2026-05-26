@@ -1,0 +1,840 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Hour grouping options — demo</title>
+    <style>
+      /* Perth Airport FlightSearch-aligned tokens (from public/styles.css) */
+      :root {
+        --brand-purple: #5c2d91;
+        --brand-purple-dark: #4a2475;
+        --brand-blue: #004f71;
+        --brand-orange-medium: #e87722;
+        --grey-1: #f5f5f5;
+        --grey-2: #ebebeb;
+        --grey-3: #d9d9d9;
+        --secondary-sand: #f4f0e8;
+        --surface: #ffffff;
+        --text: #333333;
+        --text-heading: #1a1a1a;
+        --muted: #666666;
+        --table-header-bg: #ffffff;
+        --table-header-text: var(--text-heading);
+        --status-departed: #3d6a8a;
+        --status-boarding: #1a6b3c;
+        --status-cancelled: #b91c1c;
+        --status-delayed: #b8860b;
+        --status-early: #0d9488;
+        --status-ontime: #15803d;
+        --status-scheduled: #374151;
+        --font-sans:
+          "Helvetica Neue", Helvetica, Arial, "Segoe UI", Roboto, sans-serif;
+        --board-cell-pad-x: 0.85rem;
+        --row-intl-bg: #eef4f7;
+        --row-intl-bg-hover: #e3ecf2;
+        /* Okabe–Ito–style categorical hues (max hue separation, colorblind-safe) */
+        --hour-stripe-0: #0072b2;
+        --hour-stripe-1: #e69f00;
+        --hour-stripe-2: #009e73;
+        --hour-stripe-3: #cc79a7;
+        --hour-stripe-4: #d55e00;
+        --hour-stripe-5: #332288;
+        --hour-band-0: #f7fafb;
+        --hour-band-1: #f9f7fc;
+        --hour-band-2: #fdf8f4;
+        --hour-band-3: #f4faf9;
+        --hour-band-4: #faf9f6;
+        --hour-band-5: #f6f7f8;
+      }
+
+      *,
+      *::before,
+      *::after {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        font-family: var(--font-sans);
+        background: var(--grey-1);
+        color: var(--text);
+        line-height: 1.5;
+        font-size: 16px;
+      }
+
+      .demo-page {
+        max-width: 900px;
+        margin: 0 auto;
+        padding: 1.5rem 1rem 3rem;
+      }
+
+      .demo-page h1 {
+        margin: 0 0 0.5rem;
+        font-size: 1.35rem;
+        color: var(--text-heading);
+      }
+
+      .demo-intro {
+        margin: 0 0 1rem;
+        font-size: 0.9rem;
+        color: var(--muted);
+      }
+
+      .demo-intro code {
+        font-size: 0.85em;
+      }
+
+      .demo-a11y {
+        margin: 0 0 2rem;
+        padding-left: 1.25rem;
+        font-size: 0.85rem;
+        color: var(--text);
+      }
+
+      .demo-a11y li {
+        margin-bottom: 0.35rem;
+      }
+
+      .demo-section {
+        margin-bottom: 2.5rem;
+      }
+
+      .demo-section h2 {
+        margin: 0 0 0.25rem;
+        font-size: 1.05rem;
+        color: var(--text-heading);
+        position: sticky;
+        top: 0;
+        background: var(--grey-1);
+        padding: 0.5rem 0;
+        z-index: 1;
+      }
+
+      .demo-section p {
+        margin: 0 0 0.75rem;
+        font-size: 0.85rem;
+        color: var(--muted);
+      }
+
+      .table-wrap {
+        overflow-x: auto;
+        background: var(--surface);
+        border: 1px solid var(--grey-3);
+      }
+
+      .flight-search-res-table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 0.875rem;
+      }
+
+      .flight-search-res-table th,
+      .flight-search-res-table td {
+        padding: 0.7rem var(--board-cell-pad-x);
+        text-align: left;
+        border-bottom: 1px solid var(--grey-3);
+        vertical-align: middle;
+      }
+
+      .flight-search-res-table thead th {
+        background: var(--table-header-bg);
+        color: var(--table-header-text);
+        font-weight: 700;
+        white-space: nowrap;
+        font-size: 1rem;
+      }
+
+      .flight-search-res-table tbody tr:hover {
+        background: var(--secondary-sand);
+      }
+
+      .flight-search-res-table tbody tr.row-international {
+        background: var(--row-intl-bg);
+      }
+
+      .flight-search-res-table tbody tr.row-international:hover {
+        background: var(--row-intl-bg-hover);
+      }
+
+      .flight-search-res-table tbody tr.now-divider:hover {
+        background: transparent;
+      }
+
+      .flight-search-res-table tbody tr.now-divider td {
+        padding: 0.35rem var(--board-cell-pad-x);
+        border-bottom: none;
+      }
+
+      .now-divider-line {
+        height: 0;
+        border: none;
+        border-top: 2px solid var(--brand-orange-medium);
+        margin: 0;
+      }
+
+      .flight-cell-main,
+      .times-est-main {
+        font-weight: 700;
+      }
+
+      .col-times .times-est-main,
+      .col-times .times-sched-sub {
+        white-space: nowrap;
+      }
+
+      .col-times .times-sched-sub {
+        text-decoration: line-through;
+      }
+
+      .cell-sub {
+        display: block;
+        font-size: 0.75rem;
+        font-weight: 400;
+        color: var(--muted);
+      }
+
+      .flight-cell-sub {
+        text-transform: uppercase;
+      }
+
+      .terminal-route-sub {
+        font-weight: 700;
+      }
+
+      .status-remark-main {
+        display: block;
+        font-weight: 700;
+        text-transform: uppercase;
+      }
+
+      .col-status.status-departed .status-remark-main {
+        color: var(--status-departed);
+      }
+
+      .col-status.status-boarding .status-remark-main {
+        color: var(--status-boarding);
+      }
+
+      .col-status.status-delayed .status-remark-main {
+        color: var(--status-delayed);
+      }
+
+      .col-status.status-ontime .status-remark-main {
+        color: var(--status-ontime);
+      }
+
+      .col-status.status-scheduled .status-remark-main {
+        color: var(--status-scheduled);
+      }
+
+      /* Option 2 & 6: left accent stripe */
+      .variant-stripe tbody tr.demo-flight-row {
+        position: relative;
+      }
+
+      .variant-stripe tbody tr.demo-flight-row::before {
+        content: "";
+        position: absolute;
+        left: 0;
+        top: 0;
+        bottom: 0;
+        width: 4px;
+        background: var(--hour-accent, var(--hour-stripe-0));
+      }
+
+      .variant-combined tbody tr.demo-flight-row {
+        position: relative;
+      }
+
+      .variant-combined tbody tr.demo-flight-row::before {
+        content: "";
+        position: absolute;
+        left: 0;
+        top: 0;
+        bottom: 0;
+        width: 4px;
+        background: var(--hour-accent, var(--hour-stripe-0));
+      }
+
+      /* Option 3: hour band headers */
+      .hour-header td {
+        padding: 0.5rem var(--board-cell-pad-x);
+        font-size: 0.8rem;
+        font-weight: 700;
+        color: var(--text-heading);
+        background: var(--grey-2);
+        border-bottom: 1px solid var(--grey-3);
+        text-transform: uppercase;
+        letter-spacing: 0.03em;
+      }
+
+      /* Option 4 & 6: gutter column */
+      .hour-gutter {
+        width: 1.75rem;
+        padding-left: 0.5rem !important;
+        padding-right: 0.25rem !important;
+        text-align: center;
+        vertical-align: middle;
+      }
+
+      .hour-gutter-dot {
+        display: inline-block;
+        width: 10px;
+        height: 10px;
+        border-radius: 50%;
+        background: var(--hour-accent, var(--hour-stripe-0));
+      }
+
+      .hour-gutter-label {
+        display: block;
+        font-size: 0.65rem;
+        font-weight: 700;
+        color: var(--hour-accent, var(--muted));
+        line-height: 1.2;
+        margin-top: 0.15rem;
+        white-space: nowrap;
+      }
+
+      /* Option 5: background banding */
+      .variant-banding tbody tr.demo-flight-row.row-hour-0 {
+        background: var(--hour-band-0);
+      }
+
+      .variant-banding tbody tr.demo-flight-row.row-hour-1 {
+        background: var(--hour-band-1);
+      }
+
+      .variant-banding tbody tr.demo-flight-row.row-hour-2 {
+        background: var(--hour-band-2);
+      }
+
+      .variant-banding tbody tr.demo-flight-row.row-hour-3 {
+        background: var(--hour-band-3);
+      }
+
+      .variant-banding tbody tr.demo-flight-row.row-hour-4 {
+        background: var(--hour-band-4);
+      }
+
+      .variant-banding tbody tr.demo-flight-row.row-hour-5 {
+        background: var(--hour-band-5);
+      }
+
+      .variant-banding tbody tr.demo-flight-row.row-international.row-hour-0 {
+        background: color-mix(in srgb, var(--row-intl-bg) 70%, var(--hour-band-0));
+      }
+
+      .variant-banding tbody tr.demo-flight-row.row-international.row-hour-1 {
+        background: color-mix(in srgb, var(--row-intl-bg) 70%, var(--hour-band-1));
+      }
+
+      .variant-banding tbody tr.demo-flight-row.row-international.row-hour-2 {
+        background: color-mix(in srgb, var(--row-intl-bg) 70%, var(--hour-band-2));
+      }
+
+      .variant-banding tbody tr.demo-flight-row.row-international.row-hour-3 {
+        background: color-mix(in srgb, var(--row-intl-bg) 70%, var(--hour-band-3));
+      }
+
+      .variant-banding tbody tr.demo-flight-row.row-international.row-hour-4 {
+        background: color-mix(in srgb, var(--row-intl-bg) 70%, var(--hour-band-4));
+      }
+
+      .variant-banding tbody tr.demo-flight-row.row-international.row-hour-5 {
+        background: color-mix(in srgb, var(--row-intl-bg) 70%, var(--hour-band-5));
+      }
+
+      .variant-banding tbody tr.demo-flight-row:hover {
+        filter: brightness(0.97);
+      }
+    </style>
+  </head>
+  <body>
+    <div class="demo-page">
+      <h1>Hour grouping options — demo</h1>
+      <p class="demo-intro">
+        Compare six ways to show AWST hour blocks on the flight board. Same mock
+        flights in every section; hour buckets use <strong>estimated time</strong>
+        (fallback scheduled). Orange line = “now” divider (fixed at 2:25 PM AWST for
+        this demo). Open via
+        <code>http://localhost:3000/hour-grouping-demo.html</code> or this file
+        directly.
+      </p>
+      <ul class="demo-a11y">
+        <li>
+          <strong>Option 3</strong> (hour band headers) is the most screen-reader
+          friendly.
+        </li>
+        <li>
+          Stripes and dots use distinct hues — not the only cue if you ship 2, 4,
+          or 6.
+        </li>
+        <li>The now-divider is independent of hour grouping in all variants.</li>
+      </ul>
+
+      <div id="demo-sections"></div>
+    </div>
+
+    <script>
+      /** Fixed “now” for reproducible divider: 24 May 2026, 2:25 PM AWST */
+      const DEMO_NOW_MS = Date.parse("2026-05-24T06:25:00.000Z");
+
+      const AWST_TZ = "Australia/Perth";
+      const HOUR_PALETTE = 6;
+
+      const MOCK_FLIGHTS = [
+        {
+          FlightNumber: "QF 581",
+          AirlineName: "Qantas",
+          PortName: "Melbourne",
+          Terminal: "T3",
+          Remark: "Departed",
+          _routeType: "domestic",
+          _estimatedAt: "2026-05-24T05:15:00.000Z",
+          _scheduledAt: "2026-05-24T05:15:00.000Z",
+        },
+        {
+          FlightNumber: "VA 713",
+          AirlineName: "Virgin Australia",
+          PortName: "Sydney",
+          Terminal: "T1",
+          Remark: "On-time",
+          _routeType: "domestic",
+          _estimatedAt: "2026-05-24T05:40:00.000Z",
+          _scheduledAt: "2026-05-24T05:40:00.000Z",
+        },
+        {
+          FlightNumber: "JQ 982",
+          AirlineName: "Jetstar",
+          PortName: "Brisbane",
+          Terminal: "T2",
+          Remark: "Boarding",
+          _routeType: "domestic",
+          _estimatedAt: "2026-05-24T06:05:00.000Z",
+          _scheduledAt: "2026-05-24T06:05:00.000Z",
+        },
+        {
+          FlightNumber: "NZ 175",
+          AirlineName: "Air New Zealand",
+          PortName: "Auckland",
+          Terminal: "T1",
+          Remark: "Delayed",
+          _routeType: "international",
+          _estimatedAt: "2026-05-24T06:35:00.000Z",
+          _scheduledAt: "2026-05-24T06:20:00.000Z",
+        },
+        {
+          FlightNumber: "QF 72",
+          AirlineName: "Qantas",
+          PortName: "Singapore",
+          Terminal: "T1",
+          Remark: "",
+          _routeType: "international",
+          _estimatedAt: "2026-05-24T06:45:00.000Z",
+          _scheduledAt: "2026-05-24T06:45:00.000Z",
+        },
+        {
+          FlightNumber: "VA 555",
+          AirlineName: "Virgin Australia",
+          PortName: "Adelaide",
+          Terminal: "T1",
+          Remark: "",
+          _routeType: "domestic",
+          _estimatedAt: "2026-05-24T06:50:00.000Z",
+          _scheduledAt: "2026-05-24T06:50:00.000Z",
+        },
+        {
+          FlightNumber: "SQ 225",
+          AirlineName: "Singapore Airlines",
+          PortName: "Singapore",
+          Terminal: "T1",
+          Remark: "",
+          _routeType: "international",
+          _estimatedAt: "2026-05-24T07:10:00.000Z",
+          _scheduledAt: "2026-05-24T07:10:00.000Z",
+        },
+        {
+          FlightNumber: "QF 8",
+          AirlineName: "Qantas",
+          PortName: "London",
+          Terminal: "T1",
+          Remark: "",
+          _routeType: "international",
+          _estimatedAt: "2026-05-24T07:25:00.000Z",
+          _scheduledAt: "2026-05-24T07:25:00.000Z",
+        },
+        {
+          FlightNumber: "JQ 15",
+          AirlineName: "Jetstar",
+          PortName: "Denpasar",
+          Terminal: "T1",
+          Remark: "",
+          _routeType: "international",
+          _estimatedAt: "2026-05-24T07:35:00.000Z",
+          _scheduledAt: "2026-05-24T07:35:00.000Z",
+        },
+        {
+          FlightNumber: "ZL 1612",
+          AirlineName: "Rex",
+          PortName: "Esperance",
+          Terminal: "T2",
+          Remark: "",
+          _routeType: "domestic",
+          _estimatedAt: "2026-05-24T07:50:00.000Z",
+          _scheduledAt: "2026-05-24T07:50:00.000Z",
+        },
+        {
+          FlightNumber: "EK 421",
+          AirlineName: "Emirates",
+          PortName: "Dubai",
+          Terminal: "T1",
+          Remark: "",
+          _routeType: "international",
+          _estimatedAt: "2026-05-24T08:05:00.000Z",
+          _scheduledAt: "2026-05-24T08:05:00.000Z",
+        },
+        {
+          FlightNumber: "QF 652",
+          AirlineName: "Qantas",
+          PortName: "Darwin",
+          Terminal: "T3",
+          Remark: "",
+          _routeType: "domestic",
+          _estimatedAt: "2026-05-24T08:20:00.000Z",
+          _scheduledAt: "2026-05-24T08:20:00.000Z",
+        },
+      ];
+
+      const SECTIONS = [
+        {
+          id: "baseline",
+          title: "1. Baseline (current board)",
+          desc: "No hour grouping — only the orange now-divider between past and upcoming flights.",
+          variant: "baseline",
+        },
+        {
+          id: "stripe",
+          title: "2. Left accent stripe",
+          desc: "4px coloured bar on the left; same colour for all flights in the same AWST hour, rotating palette across hours.",
+          variant: "stripe",
+        },
+        {
+          id: "headers",
+          title: "3. Hour band headers",
+          desc: "A labelled row (e.g. “2:00 PM”) before the first flight in each hour block.",
+          variant: "headers",
+        },
+        {
+          id: "gutter",
+          title: "4. Gutter dot column",
+          desc: "Extra narrow column with a coloured dot per hour bucket.",
+          variant: "gutter",
+        },
+        {
+          id: "banding",
+          title: "5. Background banding",
+          desc: "Subtle alternating background tint when the hour changes (international rows blended).",
+          variant: "banding",
+        },
+        {
+          id: "combined",
+          title: "6. Combined (stripe + hour label)",
+          desc: "Left stripe plus a small hour label on the first row of each hour only.",
+          variant: "combined",
+        },
+      ];
+
+      function escapeHtml(s) {
+        return String(s)
+          .replace(/&/g, "&amp;")
+          .replace(/</g, "&lt;")
+          .replace(/>/g, "&gt;")
+          .replace(/"/g, "&quot;");
+      }
+
+      function sortInstant(iso) {
+        if (!iso || typeof iso !== "string") return Number.POSITIVE_INFINITY;
+        const ms = Date.parse(iso);
+        return Number.isFinite(ms) ? ms : Number.POSITIVE_INFINITY;
+      }
+
+      function flightSortMs(f) {
+        const est = sortInstant(f._estimatedAt);
+        if (est !== Number.POSITIVE_INFINITY) return est;
+        return sortInstant(f._scheduledAt);
+      }
+
+      const awstHourFmt = new Intl.DateTimeFormat("en-CA", {
+        timeZone: AWST_TZ,
+        year: "numeric",
+        month: "2-digit",
+        day: "2-digit",
+        hour: "2-digit",
+        hour12: false,
+      });
+
+      const awstClockFmt = new Intl.DateTimeFormat("en-AU", {
+        timeZone: AWST_TZ,
+        hour: "2-digit",
+        minute: "2-digit",
+        hour12: true,
+      });
+
+      const awstHourLabelFmt = new Intl.DateTimeFormat("en-AU", {
+        timeZone: AWST_TZ,
+        hour: "numeric",
+        minute: "2-digit",
+        hour12: true,
+      });
+
+      function hourBucketKey(ms) {
+        if (!Number.isFinite(ms)) return "";
+        const parts = awstHourFmt.formatToParts(new Date(ms));
+        const y = parts.find((p) => p.type === "year")?.value ?? "";
+        const mo = parts.find((p) => p.type === "month")?.value ?? "";
+        const d = parts.find((p) => p.type === "day")?.value ?? "";
+        const h = parts.find((p) => p.type === "hour")?.value ?? "";
+        return `${y}-${mo}-${d}T${h}`;
+      }
+
+      function hourLabel(ms) {
+        if (!Number.isFinite(ms)) return "—";
+        const parts = awstHourLabelFmt.formatToParts(new Date(ms));
+        const hour = parts.find((p) => p.type === "hour")?.value ?? "";
+        const minute = parts.find((p) => p.type === "minute")?.value ?? "00";
+        const dayPeriod = (
+          parts.find((p) => p.type === "dayPeriod")?.value ?? ""
+        ).toUpperCase();
+        return `${hour}:${minute} ${dayPeriod}`;
+      }
+
+      function formatClock(ms) {
+        if (!Number.isFinite(ms)) return "—";
+        const parts = awstClockFmt.formatToParts(new Date(ms));
+        const hour = parts.find((p) => p.type === "hour")?.value ?? "";
+        const minute = parts.find((p) => p.type === "minute")?.value ?? "";
+        const dayPeriod = (
+          parts.find((p) => p.type === "dayPeriod")?.value ?? ""
+        ).toUpperCase();
+        return `${hour}:${minute} ${dayPeriod}`;
+      }
+
+      function assignBucketMeta(flights) {
+        let bucketSeq = -1;
+        let prevKey = null;
+        return flights.map((f) => {
+          const ms = flightSortMs(f);
+          const key = hourBucketKey(ms);
+          if (key !== prevKey) {
+            bucketSeq += 1;
+            prevKey = key;
+          }
+          const palette = bucketSeq % HOUR_PALETTE;
+          return {
+            flight: f,
+            ms,
+            bucketKey: key,
+            bucketIndex: palette,
+            hourLabelText: hourLabel(ms),
+            isFirstInBucket: false,
+          };
+        }).map((row, i, arr) => {
+          const prev = arr[i - 1];
+          row.isFirstInBucket =
+            !prev || prev.bucketKey !== row.bucketKey;
+          return row;
+        });
+      }
+
+      function sortedFlights() {
+        return [...MOCK_FLIGHTS].sort(
+          (a, b) => flightSortMs(a) - flightSortMs(b),
+        );
+      }
+
+      function nowDividerInsertIndex(flights, nowMs = DEMO_NOW_MS) {
+        let insertAfter = -1;
+        for (let i = 0; i < flights.length; i++) {
+          if (flightSortMs(flights[i]) <= nowMs) insertAfter = i;
+          else break;
+        }
+        return insertAfter;
+      }
+
+      function statusClass(remark) {
+        const r = (remark ?? "").trim();
+        if (r === "Delayed") return "status-delayed";
+        if (r === "On-time") return "status-ontime";
+        if (r === "Departed" || r === "Landed") return "status-departed";
+        if (r === "Boarding") return "status-boarding";
+        if (!r) return "status-scheduled";
+        return "";
+      }
+
+      function routeTypeLabel(f) {
+        if (f._routeType === "domestic") return "Domestic";
+        if (f._routeType === "international") return "International";
+        return "—";
+      }
+
+      function terminalDisplay(f) {
+        const t = (f.Terminal ?? "").trim();
+        return t || "—";
+      }
+
+      function flightMainLine(f) {
+        const num = (f.FlightNumber ?? "").trim();
+        const airline = (f.AirlineName ?? "").trim();
+        if (num && airline) return `${num} - ${airline}`;
+        return num || airline || "—";
+      }
+
+      function timesCellHtml(f) {
+        const estMs = sortInstant(f._estimatedAt);
+        const schedMs = sortInstant(f._scheduledAt);
+        const est = escapeHtml(formatClock(estMs));
+        const sched = escapeHtml(formatClock(schedMs));
+        return `<span class="times-est-main">${est}</span><span class="cell-sub times-sched-sub">${sched}</span>`;
+      }
+
+      function statusCellHtml(f) {
+        const remark = escapeHtml((f.Remark ?? "").trim() || "Scheduled");
+        const term = terminalDisplay(f);
+        const route = routeTypeLabel(f);
+        const line =
+          term === "—"
+            ? "—"
+            : route === "—"
+              ? term
+              : `${term} · ${route}`;
+        return `<span class="status-remark-main">${remark}</span><span class="cell-sub terminal-route-sub">${escapeHtml(line)}</span>`;
+      }
+
+      function flightCellHtml(f) {
+        const port = (f.PortName ?? "").trim();
+        const portSub = port
+          ? `<span class="cell-sub flight-cell-sub">${escapeHtml(port)}</span>`
+          : "";
+        return `<span class="flight-cell-main">${escapeHtml(flightMainLine(f))}</span>${portSub}`;
+      }
+
+      const NOW_DIVIDER_ROW = (colspan) =>
+        `<tr class="now-divider" aria-hidden="true"><td colspan="${colspan}"><div class="now-divider-line" role="presentation"></div></td></tr>`;
+
+      function hourHeaderRow(label, colspan) {
+        return `<tr class="hour-header"><td colspan="${colspan}">${escapeHtml(label)}</td></tr>`;
+      }
+
+      function buildFlightRow(meta, options) {
+        const f = meta.flight;
+        const stClass = statusClass(f.Remark);
+        const rowIntl = f._routeType === "international" ? "row-international" : "";
+        const hourClass = `row-hour-${meta.bucketIndex}`;
+        const accent = `var(--hour-stripe-${meta.bucketIndex})`;
+        const rowClasses = [
+          "demo-flight-row",
+          rowIntl,
+          options.variant === "banding" ? hourClass : "",
+        ]
+          .filter(Boolean)
+          .join(" ");
+
+        const styleAttr = options.useAccent
+          ? ` style="--hour-accent: ${accent}"`
+          : "";
+
+        let gutterCell = "";
+        if (options.gutter) {
+          const label =
+            options.gutterLabel && meta.isFirstInBucket
+              ? `<span class="hour-gutter-label">${escapeHtml(meta.hourLabelText)}</span>`
+              : "";
+          gutterCell = `<td class="hour-gutter"${styleAttr}><span class="hour-gutter-dot" aria-hidden="true"></span>${label}</td>`;
+        }
+
+        const stTdClass = ["col-status", stClass].filter(Boolean).join(" ");
+
+        return `<tr class="${rowClasses}"${styleAttr}>
+          ${gutterCell}
+          <td class="col-times">${timesCellHtml(f)}</td>
+          <td class="${stTdClass}">${statusCellHtml(f)}</td>
+          <td class="flight-cell">${flightCellHtml(f)}</td>
+        </tr>`;
+      }
+
+      function renderTableBody(variant, rows, dividerAt) {
+        const parts = [];
+        const hasGutter = variant === "gutter" || variant === "combined";
+        const colspan = hasGutter ? 4 : 3;
+
+        if (dividerAt === -1) parts.push(NOW_DIVIDER_ROW(colspan));
+
+        for (let i = 0; i < rows.length; i++) {
+          const meta = rows[i];
+          if (variant === "headers" && meta.isFirstInBucket) {
+            parts.push(hourHeaderRow(meta.hourLabelText, colspan));
+          }
+          parts.push(
+            buildFlightRow(meta, {
+              variant,
+              useAccent: variant === "stripe" || variant === "combined",
+              gutter: hasGutter,
+              gutterLabel: variant === "combined",
+            }),
+          );
+          if (dividerAt === i) parts.push(NOW_DIVIDER_ROW(colspan));
+        }
+
+        return parts.join("");
+      }
+
+      function tableHtml(section, rows, dividerAt) {
+        const hasGutter =
+          section.variant === "gutter" || section.variant === "combined";
+        const variantClass =
+          section.variant === "baseline"
+            ? ""
+            : ` variant-${section.variant}`;
+        const gutterTh = hasGutter
+          ? '<th scope="col" class="hour-gutter" aria-label="Hour"></th>'
+          : "";
+
+        return `<div class="table-wrap">
+          <table class="flight-search-res-table${variantClass}">
+            <thead>
+              <tr>
+                ${gutterTh}
+                <th scope="col">Time</th>
+                <th scope="col">Status</th>
+                <th scope="col">Flight</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${renderTableBody(section.variant, rows, dividerAt)}
+            </tbody>
+          </table>
+        </div>`;
+      }
+
+      function renderPage() {
+        const flights = sortedFlights();
+        const rows = assignBucketMeta(flights);
+        const dividerAt = nowDividerInsertIndex(flights);
+        const container = document.getElementById("demo-sections");
+
+        container.innerHTML = SECTIONS.map(
+          (section) => `
+          <section class="demo-section" id="section-${section.id}">
+            <h2>${escapeHtml(section.title)}</h2>
+            <p>${escapeHtml(section.desc)}</p>
+            ${tableHtml(section, rows, dividerAt)}
+          </section>
+        `,
+        ).join("");
+      }
+
+      renderPage();
+    </script>
+  </body>
+</html>

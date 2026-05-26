@@ -41,6 +41,13 @@
   --board-content-inset: var(--board-cell-pad-x);
   --row-intl-bg: #eef4f7;
   --row-intl-bg-hover: #e3ecf2;
+  /* Hour-group stripe palette (colorblind-friendly) */
+  --hour-stripe-0: #0072b2;
+  --hour-stripe-1: #e69f00;
+  --hour-stripe-2: #009e73;
+  --hour-stripe-3: #cc79a7;
+  --hour-stripe-4: #d55e00;
+  --hour-stripe-5: #332288;
 }
 
 *,
@@ -420,16 +427,22 @@ a:hover {
 }
 
 .flight-search-res-table tbody tr.now-divider td {
-  padding: 0.35rem var(--board-cell-pad-x);
+  padding: 0.35rem 0;
   border-bottom: none;
   vertical-align: middle;
 }
 
 .now-divider-line {
+  display: block;
+  width: 100%;
   height: 0;
   border: none;
   border-top: 2px solid var(--brand-orange-medium);
   margin: 0;
+}
+
+.flight-search-res-table tbody td.col-times-hour-stripe {
+  box-shadow: inset 4px 0 0 var(--hour-accent, var(--hour-stripe-0));
 }
 
 .flight-cell-main,

@@ -454,9 +454,9 @@ function escapeHtml(s) {
     .replace(/"/g, "&quot;");
 }
 
-function tableCell(innerHtml, className = "") {
+function tableCell(innerHtml, className = "", extra = "") {
   const cls = className ? ` class="${className}"` : "";
-  return `<td${cls}>${innerHtml}</td>`;
+  return `<td${cls}${extra}>${innerHtml}</td>`;
 }
 
 /** @param {object} f */
@@ -536,6 +536,44 @@ function flightSortMs(f) {
   return sortInstant(f._scheduledAt);
 }
 
+const AWST_TZ = "Australia/Perth";
+const HOUR_PALETTE_SIZE = 6;
+
+const awstHourFmt = new Intl.DateTimeFormat("en-CA", {
+  timeZone: AWST_TZ,
+  year: "numeric",
+  month: "2-digit",
+  day: "2-digit",
+  hour: "2-digit",
+  hour12: false,
+});
+
+/** @param {number} ms */
+function hourBucketKey(ms) {
+  if (!Number.isFinite(ms)) return "";
+  const parts = awstHourFmt.formatToParts(new Date(ms));
+  const y = parts.find((p) => p.type === "year")?.value ?? "";
+  const mo = parts.find((p) => p.type === "month")?.value ?? "";
+  const d = parts.find((p) => p.type === "day")?.value ?? "";
+  const h = parts.find((p) => p.type === "hour")?.value ?? "";
+  return `${y}-${mo}-${d}T${h}`;
+}
+
+/** @param {object[]} flights */
+function assignHourBucketIndices(flights) {
+  let bucketSeq = -1;
+  let prevKey = null;
+  return flights.map((f) => {
+    const ms = flightSortMs(f);
+    const key = hourBucketKey(ms);
+    if (key !== prevKey) {
+      bucketSeq += 1;
+      prevKey = key;
+    }
+    return bucketSeq % HOUR_PALETTE_SIZE;
+  });
+}
+
 function shouldShowNowDivider() {
   const todayIso = boardCache.meta?.boardDate;
   if (!todayIso) return false;
@@ -564,17 +602,18 @@ const NOW_DIVIDER_ROW = `<tr class="now-divider" aria-hidden="true">
   <td colspan="3"><div class="now-divider-line" role="presentation"></div></td>
 </tr>`;
 
-/** @param {object} f @param {boolean} showDateInTimes */
-function flightRowHtml(f, showDateInTimes) {
+/** @param {object} f @param {boolean} showDateInTimes @param {number} bucketIndex */
+function flightRowHtml(f, showDateInTimes, bucketIndex) {
   const flightInner = flightCellInner(f);
   const timesInner = timesCellInner(f, showDateInTimes);
   const stClass = statusClass(f.Remark);
   const stInner = statusCellHtml(f);
   const stTdClass = ["col-status", stClass].filter(Boolean).join(" ");
   const rowClass = f._routeType === "international" ? "row-international" : "";
+  const stripeStyle = ` style="--hour-accent: var(--hour-stripe-${bucketIndex})"`;
 
   return `<tr class="${rowClass}">
-        ${tableCell(timesInner, "col-times")}
+        ${tableCell(timesInner, "col-times col-times-hour-stripe", stripeStyle)}
         <td class="${stTdClass}">${stInner}</td>
         ${tableCell(flightInner, "flight-cell")}
       </tr>`;
@@ -591,6 +630,7 @@ function renderTable() {
   }
 
   const showDateInTimes = els.filterDate.value === "";
+  const bucketIndices = assignHourBucketIndices(flights);
   const dividerAt = nowDividerInsertIndex(flights);
   const parts = [];
 
@@ -599,7 +639,7 @@ function renderTable() {
   }
 
   for (let i = 0; i < flights.length; i++) {
-    parts.push(flightRowHtml(flights[i], showDateInTimes));
+    parts.push(flightRowHtml(flights[i], showDateInTimes, bucketIndices[i]));
     if (dividerAt !== null && i === dividerAt) {
       parts.push(NOW_DIVIDER_ROW);
     }
