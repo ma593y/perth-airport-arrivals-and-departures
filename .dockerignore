@@ -8,3 +8,7 @@ data/*.json
 *.md
 .env
 .env.*
+.cursor
+.github
+**/*.test.ts
+public/hour-grouping-demo.html

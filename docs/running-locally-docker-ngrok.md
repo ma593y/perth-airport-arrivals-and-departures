@@ -75,7 +75,9 @@ ngrok http 3000
 
 ### After code changes (git pull or local edits)
 
-The board and API run from the Docker image. Restarting containers alone does **not** pick up new `public/` or `src/` files — rebuild and recreate:
+The board and API run from the Docker image. Restarting containers alone does **not** pick up new `public/` or `src/` files — rebuild and recreate.
+
+After `public/` or `src/` edits, `docker compose build` is usually much faster than the first build (Playwright install layer cached). Changing `package-lock.json` or the Dockerfile still triggers a full Chromium download.
 
 **API + scheduler (normal setup):**
 

@@ -19,6 +19,8 @@ docker compose build; docker compose --profile scheduler up -d --force-recreate
 
 Then hard-refresh the browser if the UI looks cached.
 
+Rebuilds after `public/` or `src/` edits should be much faster than a cold build: the Playwright layer and `npm ci` stay cached unless `package-lock.json` changes (Dockerfile layer order; npm uses a BuildKit cache mount). A cold build or lockfile change still downloads Chromium (~1–2 minutes).
+
 ## Agent behavior
 
 - After implementing or suggesting application code changes, remind the user to run the command above (or offer to run it via the shell).

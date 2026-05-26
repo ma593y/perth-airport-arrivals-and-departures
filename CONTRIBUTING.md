@@ -27,6 +27,8 @@ docker compose build
 docker compose --profile scheduler up -d --force-recreate
 ```
 
+UI-only changes rebuild quickly (Playwright layer stays cached); lockfile or Dockerfile changes trigger a full rebuild. `npm ci` uses a BuildKit cache mount (Docker Desktop enables BuildKit by default).
+
 ## Scraping policy
 
 - Default collect interval is **5 minutes** (`SCRAPE_INTERVAL_SECONDS=300`). Do not increase scrape frequency without discussion.

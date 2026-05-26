@@ -1,3 +1,4 @@
+# syntax=docker/dockerfile:1
 # Node 22 LTS: prebuilt better-sqlite3; Playwright installs Chromium + OS deps
 FROM node:22-bookworm-slim
 
@@ -16,12 +17,14 @@ ENV PORT=3000
 
 COPY package.json package-lock.json ./
 # Install all deps (tsx, playwright are devDependencies but required at runtime)
-RUN npm ci
+RUN --mount=type=cache,target=/root/.npm \
+    npm ci
+
+# Chromium + Debian libraries required by Playwright (before COPY so UI edits stay cached).
+# Browsers must land in the image layer (not a cache mount — mounts are not exported to the final image).
+RUN npx playwright install --with-deps chromium
 
 COPY . .
-
-# Chromium + Debian libraries required by Playwright
-RUN npx playwright install --with-deps chromium
 
 ENV NODE_ENV=production
 

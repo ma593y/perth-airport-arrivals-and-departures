@@ -381,7 +381,7 @@ a:hover {
 /* Flight table */
 .table-wrap {
   margin: 0;
-  padding: 0;
+  padding: 0 calc(var(--board-cell-pad-x) / 4);
   overflow-x: auto;
   background: var(--surface);
 }
@@ -579,5 +579,10 @@ a:hover {
     margin-right: var(--board-gutter);
     padding-left: var(--board-wrap-pad-x);
     padding-right: var(--board-wrap-pad-x);
+  }
+
+  .table-wrap {
+    padding-left: calc(var(--board-gutter) / 4);
+    padding-right: calc(var(--board-gutter) / 4);
   }
 }
