@@ -2,6 +2,8 @@
 
 This guide explains how the flight board, data collection, and ngrok fit together when you run the stack on your PC and open it from your phone.
 
+**See also:** [docker.md](docker.md) (Compose services and rebuild) · [docs index](README.md) · [legal-and-operators.md](legal-and-operators.md) (tunnel security)
+
 ## What each piece does
 
 | Piece | What it is | What it does |
@@ -137,7 +139,7 @@ An ngrok tunnel exposes your **read-only** flight board and `/api/*` endpoints t
 
 - Do not leave a tunnel running when you are not using it.
 - On paid ngrok plans, use **OAuth** or **IP restrictions** on the tunnel if available.
-- Optional: set `CORS_ORIGIN` to your ngrok `https://` URL so browsers only call the API from that origin (see README).
+- Optional: set `CORS_ORIGIN` to your ngrok `https://` URL so browsers only call the API from that origin (see [README](../README.md) and [api.md](api.md)).
 - For anything beyond personal use, deploy to a host you control instead of tunneling your home PC.
 
 ## Troubleshooting
@@ -153,5 +155,8 @@ An ngrok tunnel exposes your **read-only** flight board and `/api/*` endpoints t
 
 ## Related docs
 
-- [README.md](../README.md) — setup, API, environment variables
+- [README.md](../README.md) — overview and quick start
+- [docker.md](docker.md) — Compose commands and rebuild workflow
+- [setup.md](setup.md) — local development without Docker
+- [api.md](api.md) — HTTP API reference
 - [docker-compose.yml](../docker-compose.yml) — service definitions and profiles

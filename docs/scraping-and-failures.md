@@ -2,6 +2,8 @@
 
 This app loads flight boards by driving the [official Perth Airport flights page](https://www.perthairport.com.au/flights/departures-and-arrivals) in headless Chromium, then POSTing to the same `GetFlightResults` endpoint the site uses.
 
+**See also:** [architecture.md](architecture.md) (collect path) · [workflows.md](workflows.md) (debug and schema fixes) · [legal-and-operators.md](legal-and-operators.md) (scrape interval policy)
+
 ## What can go wrong
 
 | Symptom | Likely cause | What to check |
@@ -31,5 +33,8 @@ Successful scheduler output includes `Collect OK`. Failed runs print a formatted
 
 ## Related
 
-- [README.md](../README.md) — environment variables, legal notice
+- [README.md](../README.md) — overview and troubleshooting
+- [docker.md](docker.md) — Compose services and single-writer rule
+- [setup.md](setup.md) — local `npm run collect`
+- [learning.md](learning.md) — `src/ingest/perth-airport.ts` walkthrough
 - [running-locally-docker-ngrok.md](running-locally-docker-ngrok.md) — Docker + ngrok

@@ -1,6 +1,7 @@
 {
   "name": "perth-airport-arrivals-and-departures",
   "version": "1.0.0",
+  "description": "Unofficial Perth Airport (PER) flight board for rideshare drivers—rolling arrivals/departures windows, terminal filters, self-host and learning.",
   "license": "MIT",
   "engines": {
     "node": ">=22 <23"

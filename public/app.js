@@ -1,7 +1,8 @@
 /**
  * Perth Airport flight board — reads /api/flights.
  * Flight list filtering is server-side; see src/flights/flight-filters.ts.
- * @see README.md Flight board
+ * @see README.md
+ * @see docs/learning.md
  */
 
 const META_POLL_MS = 60_000;

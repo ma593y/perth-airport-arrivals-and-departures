@@ -1,143 +1,133 @@
-# Perth Airport arrivals and departures
+# Perth Airport Arrivals & Departures
 
-Live flight board for Perth Airport (PER). Collects departures and arrivals via Playwright, stores them in **SQLite** (`data/flights.db`), and serves the board through a small **Hono API** and static UI at `/`.
+Unofficial live flight board for Perth Airport (PER), built for **rideshare drivers** who need a rolling view of arrivals and departures—not a static passenger lookup.
 
-## Setup
+Use **last/next hour windows**, **terminal groups** (T1+T2 vs T3+T4), and **hide landed/departed** to plan pickups and drop-offs. Run it on your PC with Docker, or tunnel to your phone with ngrok. The project is also a **learning / self-host** codebase: fork it, study how scraping → SQLite → API → UI fits together, and run your own instance.
 
-**Node.js 22 LTS** is required (`better-sqlite3` has prebuilt binaries for 22 on Windows). Check with `node -v` — use `v22.x`, not `v24.x`.
+**[Legal / data source](#legal--data-source)** · [Documentation](docs/README.md) · [MIT License](LICENSE)
+
+## Why this exists
+
+The official Perth Airport app and website work well for passengers checking a single flight. For rideshare work you often need a **time-bounded board**: what landed or departed in the last hour, what is coming in the next few hours, split by domestic/international and by terminal area—without scrolling through a full day.
+
+This board optimizes for that workflow:
+
+- **Last 1h + next 6h** by default (configurable up to 24h each way)
+- **Terminal groups** aligned with common PER pickup zones (T1+T2, T3+T4)
+- **Hide Landed / Hide Departed** to focus on active movements
+- **Mobile-friendly** filters and optional [ngrok](docs/running-locally-docker-ngrok.md) access from your phone
+
+It is **not** a commercial product and **not** affiliated with Perth Airport. It is open source for download, fork, and personal/self-hosted use.
+
+## Not accepting contributions
+
+This repository is published for **learning and self-hosting**. You may fork and modify it under the [MIT License](LICENSE).
+
+- **No pull requests** — patches are not reviewed or merged here.
+- **No support SLA** — use issues only if you choose; there is no obligation to respond.
+- **Fork freely** — run your own copy; you are responsible for compliance when operating a collector (see [Legal / data source](#legal--data-source) and [docs/legal-and-operators.md](docs/legal-and-operators.md)).
+
+To study the code, start with [docs/learning.md](docs/learning.md).
+
+## Features
+
+### Flight board (rideshare-oriented)
+
+| Feature | Detail |
+|---------|--------|
+| Arrivals / departures | Separate boards; **saved filters per direction** in `localStorage` |
+| Time windows | **Last** 1–24h (default **1h**) + **Next** 1–24h (default **6h**) |
+| Terminal groups | **T1+T2**, **T3+T4**, **Others** |
+| Domestic / international | Filter by route type (derived from airline/port metadata) |
+| International row highlight | Subtle styling for international flights (`row-international` in `public/styles.css`) |
+| Board date | Today, yesterday, tomorrow labels from retained DB dates |
+| Hide completed | Hide **Landed** (arrivals) or **Departed** (departures) |
+| Now divider | Visual “current time” line when viewing today (or all dates) |
+| Hour striping | Alternating hour-band accent on the time column |
+| Rich rows | Estimated + scheduled times; status styling; terminal · route; flight + port |
+| Live updates | Polls `/api/meta` every 60s; refetches when `scrapeRevision` changes |
+| Mobile UX | Collapsible filter drawer; result count in header; all times **AWST** |
+
+### Under the hood
+
+| Feature | Detail |
+|---------|--------|
+| Collect | Playwright loads the official page; in-browser POST with CSRF (same flow as the site) |
+| Validation | Zod schemas for airport JSON |
+| Efficient writes | Content-hash compare; upsert only changed flights |
+| Retention | Yesterday + today in SQLite; **tomorrow** during prefetch window before AWST midnight |
+| Database | SQLite with WAL; **one writer** (collect/scheduler), many readers (API) |
+| API | Read-only Hono: `/api/health`, `/api/meta`, `/api/flights` |
+| Hardening | Rate limit, CORS, security headers, ETag on API responses |
+| Docker | `api`, one-shot `collector`, periodic `scheduler` (default every 5 minutes) |
+| Phone access | [Docker + ngrok guide](docs/running-locally-docker-ngrok.md) |
+
+## Quick start (local)
+
+**Node.js 22 LTS** required (`node -v` → `v22.x`). Full steps: [docs/setup.md](docs/setup.md).
 
 ```bash
 npm install
 npx playwright install chromium
 npm run migrate
-```
-
-## Commands
-
-| Command | Description |
-|---------|-------------|
-| `npm run collect` | Fetch boards from Perth Airport and merge into SQLite |
-| `npm run migrate` | Apply SQLite migrations |
-| `npm run dev` | API + flight board at http://localhost:3000/ |
-| `npm run start` | Same as `dev` (production / Docker API) |
-| `npm run db:generate` | Generate Drizzle migrations from schema |
-| `npm run typecheck` | TypeScript check (`tsc --noEmit`) |
-| `npm run test` | Unit tests (`node:test`) |
-
-## Docker (recommended for production)
-
-**Local + mobile (ngrok):** see [docs/running-locally-docker-ngrok.md](docs/running-locally-docker-ngrok.md).
-
-**Prerequisites:** Docker Desktop or Docker Engine + Compose v2.
-
-```bash
-docker compose build
-docker compose up -d api
-```
-
-Open **http://localhost:3000/**
-
-**First data load** (one-off collect into the shared volume):
-
-```bash
-docker compose --profile collect run --rm collector
-```
-
-**Continuous collection** (default every 5 minutes):
-
-```bash
-docker compose --profile scheduler up -d
-```
-
-| Command | Description |
-|---------|-------------|
-| `docker compose build` | Build `perth-airport-arrivals-and-departures:latest` |
-| `docker compose up -d api` | Flight board API + UI |
-| `docker compose --profile collect run --rm collector` | Single collect run |
-| `docker compose --profile scheduler up -d` | API + periodic collector |
-| `docker compose build` then `docker compose --profile scheduler up -d --force-recreate` | Rebuild image after code changes (see ngrok doc) |
-| `docker compose logs -f api` | API logs |
-| `docker compose down` | Stop containers (volume keeps DB) |
-
-Environment variables (compose or `.env`): `PORT`, `DATABASE_PATH`, `SCRAPE_INTERVAL_SECONDS`, `SCRAPE_NEXT_DAY_HOURS_BEFORE_MIDNIGHT`.
-
-## Architecture
-
-```mermaid
-flowchart LR
-  collect[collect] --> ingest[ingest]
-  ingest --> flights[flights]
-  flights --> db[(flights.db)]
-  api[Hono API] --> db
-  public[public UI] --> api
-```
-
-- **Collect** (`npm run collect`): Playwright → Zod validate → content-hash compare → upsert changed rows only.
-- **Retention**: Each collect keeps **yesterday + today** in SQLite (AWST board dates). During the prefetch window (`SCRAPE_NEXT_DAY_HOURS_BEFORE_MIDNIGHT`, default 3h before AWST midnight), **tomorrow** is retained as well. Older board dates are pruned. Collect does not re-fetch yesterday; those rows are kept from when that day was still today (or tomorrow during prefetch).
-- **Database**: SQLite with WAL; one writer (collect), many readers (API).
-- **API**: `GET /api/meta`, `GET /api/flights` (Zod-validated query params).
-- **UI** ([`public/`](public/)): Polls `/api/meta` every 60s; refetches when `scrapeRevision` changes.
-
-## API
-
-| Endpoint | Description |
-|----------|-------------|
-| `GET /api/health` | `{ ok, lastScrapeAt }` for uptime checks |
-| `GET /api/meta?direction=arrivals\|departures` | Store metadata |
-| `GET /api/flights?...` | Filtered flight list + meta |
-
-Query parameters for `/api/flights`: `direction`, `domInt`, `terminalGroup`, `lastHours`, `nextHours`, `boardDate`, `hideCompleted`. (`hours` is accepted as an alias for `lastHours`.)
-
-## Environment variables
-
-| Variable | Default | Purpose |
-|----------|---------|---------|
-| `DATABASE_PATH` | `data/flights.db` | SQLite file path |
-| `PORT` | `3000` | API server port |
-| `SCRAPE_INTERVAL_SECONDS` | `300` | Scheduler interval in seconds (Docker; default 5 minutes) |
-| `SCRAPE_NEXT_DAY_HOURS_BEFORE_MIDNIGHT` | `3` | When to prefetch tomorrow's board |
-| `CORS_ORIGIN` | `*` | Allowed browser origin (`*` or your ngrok `https://` URL) |
-
-## Development
-
-Requires Node 22. See [CONTRIBUTING.md](CONTRIBUTING.md).
-
-```bash
-npm run typecheck
-npm run test
-```
-
-CI runs both on pull requests to `main`.
-
-## Security
-
-The API is **read-only** and has **no authentication**. Do not expose it on the public internet without considering risk.
-
-- **Rate limit:** 120 requests per minute per IP on `/api/*`.
-- **Headers:** `X-Content-Type-Options`, `X-Frame-Options`, Content-Security-Policy on responses.
-- **CORS:** Set `CORS_ORIGIN` to your ngrok URL when tunneling; default `*` is for local dev.
-- **ngrok:** See [docs/running-locally-docker-ngrok.md](docs/running-locally-docker-ngrok.md#security-when-using-ngrok).
-
-## Quick start
-
-```bash
-npm install
-npm run migrate
 npm run collect
 npm run dev
 ```
 
+Open **http://localhost:3000/**
+
+## Docker (recommended)
+
+```bash
+docker compose build
+docker compose --profile collect run --rm collector
+docker compose --profile scheduler up -d
+```
+
+Open **http://localhost:3000/**. For mobile access via ngrok, see [docs/running-locally-docker-ngrok.md](docs/running-locally-docker-ngrok.md). Service details: [docs/docker.md](docs/docker.md).
+
+After changing `public/`, `src/`, `scripts/`, `Dockerfile`, or `docker-compose.yml`:
+
+```bash
+docker compose build
+docker compose --profile scheduler up -d --force-recreate
+```
+
+## Documentation
+
+| Guide | Contents |
+|-------|----------|
+| [docs/README.md](docs/README.md) | Documentation index and reading order |
+| [docs/setup.md](docs/setup.md) | Local development setup |
+| [docs/docker.md](docs/docker.md) | Compose services, profiles, rebuild workflow |
+| [docs/running-locally-docker-ngrok.md](docs/running-locally-docker-ngrok.md) | Phone access with ngrok |
+| [docs/architecture.md](docs/architecture.md) | Stack and data flow |
+| [docs/project-structure.md](docs/project-structure.md) | Directory layout |
+| [docs/api.md](docs/api.md) | HTTP API reference |
+| [docs/workflows.md](docs/workflows.md) | Maintainer workflows |
+| [docs/learning.md](docs/learning.md) | Code study path |
+| [docs/legal-and-operators.md](docs/legal-and-operators.md) | Legal notice and operator duties |
+| [docs/scraping-and-failures.md](docs/scraping-and-failures.md) | Collect failures and recovery |
+
 ## Legal / data source
 
-This project is **not affiliated with Perth Airport**. Flight data is obtained by automated access to the [official flights page](https://www.perthairport.com.au/flights/departures-and-arrivals). That access may be restricted by site terms; operators are responsible for compliance. Data is provided **as-is** with no warranty of accuracy or timeliness — always confirm at the official board before travel decisions.
+This project is **not affiliated with Perth Airport**. Flight data is obtained by automated access to the [official flights page](https://www.perthairport.com.au/flights/departures-and-arrivals). That access may be restricted by site terms; **each operator** of a collector instance is responsible for compliance.
 
-Licensed under [MIT](LICENSE).
+Data is provided **as-is** with no warranty of accuracy or timeliness—always confirm at the [official flight board](https://www.perthairport.com.au/flights/departures-and-arrivals) before travel or pickup decisions.
+
+The [MIT License](LICENSE) applies to **this software** only. It does not grant rights to redistribute Perth Airport flight data or override their terms.
+
+## License
+
+Licensed under the [MIT License](LICENSE).
 
 ## Troubleshooting
 
-- **Docker: empty board** — Run `docker compose --profile collect run --rm collector` once.
-- **No data / 404 from API** — Run `npm run collect` after `npm run migrate`.
-- **Node 24 on Windows** — Use Docker or install Node 22 LTS.
-- **Port in use** — Set `PORT=3001 npm run dev`.
-- **Playwright browser missing** — `npx playwright install chromium`
-- **Collect failures** — [docs/scraping-and-failures.md](docs/scraping-and-failures.md)
+| Problem | Fix |
+|---------|-----|
+| Docker: empty board | `docker compose --profile collect run --rm collector` |
+| No data / 404 from API | Run `npm run collect` after `npm run migrate` |
+| Node 24 on Windows | Use Docker or install Node 22 LTS |
+| Port in use | `PORT=3001 npm run dev` (or set `PORT` in `.env` for Docker) |
+| Playwright browser missing | `npx playwright install chromium` |
+| Collect failures | [docs/scraping-and-failures.md](docs/scraping-and-failures.md) |

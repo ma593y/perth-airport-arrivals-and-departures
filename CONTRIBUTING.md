@@ -1,40 +1,28 @@
 # Contributing
 
-Thanks for your interest in this project.
+This project is **not accepting contributions**.
 
-## Setup
+- **No pull requests** — changes are not reviewed or merged into this repository.
+- **Forking is welcome** — use the code under the [MIT License](LICENSE) and maintain your own copy.
+- **No support obligation** — there is no SLA for issues or questions.
 
-- **Node.js 22 LTS** (`node -v` should show `v22.x`)
-- `npm install`
-- `npx playwright install chromium` (for collect)
-- `npm run migrate`
+## If you want to learn from the code
 
-## Before opening a PR
+- [docs/learning.md](docs/learning.md) — suggested reading order through scrape, store, API, and UI
+- [docs/project-structure.md](docs/project-structure.md) — annotated directory layout
+- [docs/architecture.md](docs/architecture.md) — stack and data flow
+
+## If you run your own instance
+
+You are an **operator**, not a contributor. See [docs/legal-and-operators.md](docs/legal-and-operators.md).
+
+- Default collect interval is **5 minutes** (`SCRAPE_INTERVAL_SECONDS=300`). Do not increase scrape frequency without a strong reason.
+- Do not add circumvention beyond the existing Playwright flow (CSRF token + in-page `fetch`).
+- Comply with Perth Airport’s website terms and use data at your own risk.
+
+## Local quality checks (for your fork)
 
 ```bash
 npm run typecheck
 npm run test
 ```
-
-CI runs the same checks on push and pull requests to `main`.
-
-## Docker
-
-After changing `public/`, `src/`, `scripts/`, `Dockerfile`, or `docker-compose.yml`:
-
-```bash
-docker compose build
-docker compose --profile scheduler up -d --force-recreate
-```
-
-UI-only changes rebuild quickly (Playwright layer stays cached); lockfile or Dockerfile changes trigger a full rebuild. `npm ci` uses a BuildKit cache mount (Docker Desktop enables BuildKit by default).
-
-## Scraping policy
-
-- Default collect interval is **5 minutes** (`SCRAPE_INTERVAL_SECONDS=300`). Do not increase scrape frequency without discussion.
-- Do not add circumvention beyond the existing Playwright flow (CSRF token + in-page `fetch`).
-- Automated access to Perth Airport’s website may be restricted by their terms. Contributors and operators are responsible for compliance. See README **Legal / data source**.
-
-## License
-
-By contributing, you agree that your contributions are licensed under the [MIT License](LICENSE).
