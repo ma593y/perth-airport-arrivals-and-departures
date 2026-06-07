@@ -29,11 +29,11 @@ COPY . .
 ENV NODE_ENV=production
 
 RUN sed -i 's/\r$//' docker/*.sh \
-  && chmod +x docker/entrypoint-api.sh docker/entrypoint-collect.sh docker/scrape-loop.sh
+  && chmod +x docker/entrypoint-app.sh
 
 EXPOSE 3000
 
 HEALTHCHECK --interval=30s --timeout=5s --start-period=30s --retries=3 \
   CMD node -e "fetch('http://127.0.0.1:'+(process.env.PORT||3000)+'/').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"
 
-CMD ["docker/entrypoint-api.sh"]
+CMD ["docker/entrypoint-app.sh"]

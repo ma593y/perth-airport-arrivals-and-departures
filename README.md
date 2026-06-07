@@ -2,9 +2,9 @@
 
 Unofficial live flight board for Perth Airport (PER), built for **rideshare drivers** who need a rolling view of arrivals and departures—not a static passenger lookup.
 
-Use **last/next hour windows**, **terminal groups** (T1+T2 vs T3+T4), and **hide landed/departed** to plan pickups and drop-offs. Run it on your PC with Docker, or tunnel to your phone with ngrok. The project is also a **learning / self-host** codebase: fork it, study how scraping → SQLite → API → UI fits together, and run your own instance.
+Use **last/next hour windows**, **terminal groups** (T1+T2 vs T3+T4), and **hide landed/departed** to plan pickups and drop-offs. Run it on your PC with Docker, or tunnel to your phone with ngrok.
 
-**[Legal / data source](#legal--data-source)** · [Documentation](docs/README.md) · [MIT License](LICENSE)
+**[Legal / data source](#legal--data-source)** · [MIT License](LICENSE)
 
 ## Why this exists
 
@@ -15,7 +15,7 @@ This board optimizes for that workflow:
 - **Last 1h + next 6h** by default (configurable up to 24h each way)
 - **Terminal groups** aligned with common PER pickup zones (T1+T2, T3+T4)
 - **Hide Landed / Hide Departed** to focus on active movements
-- **Mobile-friendly** filters and optional [ngrok](docs/running-locally-docker-ngrok.md) access from your phone
+- **Mobile-friendly** filters and optional ngrok access from your phone
 
 It is **not** a commercial product and **not** affiliated with Perth Airport. It is open source for download, fork, and personal/self-hosted use.
 
@@ -25,9 +25,7 @@ This repository is published for **learning and self-hosting**. You may fork and
 
 - **No pull requests** — patches are not reviewed or merged here.
 - **No support SLA** — use issues only if you choose; there is no obligation to respond.
-- **Fork freely** — run your own copy; you are responsible for compliance when operating a collector (see [Legal / data source](#legal--data-source) and [docs/legal-and-operators.md](docs/legal-and-operators.md)).
-
-To study the code, start with [docs/learning.md](docs/learning.md).
+- **Fork freely** — run your own copy; you are responsible for compliance when operating a collector (see [Legal / data source](#legal--data-source)).
 
 ## Features
 
@@ -56,15 +54,14 @@ To study the code, start with [docs/learning.md](docs/learning.md).
 | Validation | Zod schemas for airport JSON |
 | Efficient writes | Content-hash compare; upsert only changed flights |
 | Retention | Yesterday + today in SQLite; **tomorrow** during prefetch window before AWST midnight |
-| Database | SQLite with WAL; **one writer** (collect/scheduler), many readers (API) |
+| Database | SQLite with WAL; single writer (scrape loop), readers (API) |
 | API | Read-only Hono: `/api/health`, `/api/meta`, `/api/flights` |
 | Hardening | Rate limit, CORS, security headers, ETag on API responses |
-| Docker | `api`, one-shot `collector`, periodic `scheduler` (default every 5 minutes) |
-| Phone access | [Docker + ngrok guide](docs/running-locally-docker-ngrok.md) |
+| Docker | Single `app` container: API + scrape loop (default every 1 minute) |
 
 ## Quick start (local)
 
-**Node.js 22 LTS** required (`node -v` → `v22.x`). Full steps: [docs/setup.md](docs/setup.md).
+**Node.js 22 LTS** required (`node -v` → `v22.x`).
 
 ```bash
 npm install
@@ -80,34 +77,19 @@ Open **http://localhost:3000/**
 
 ```bash
 docker compose build
-docker compose --profile collect run --rm collector
-docker compose --profile scheduler up -d
+docker compose up -d
 ```
 
-Open **http://localhost:3000/**. For mobile access via ngrok, see [docs/running-locally-docker-ngrok.md](docs/running-locally-docker-ngrok.md). Service details: [docs/docker.md](docs/docker.md).
+Open **http://localhost:3000/**
 
 After changing `public/`, `src/`, `scripts/`, `Dockerfile`, or `docker-compose.yml`:
 
 ```bash
 docker compose build
-docker compose --profile scheduler up -d --force-recreate
+docker compose up -d --force-recreate
 ```
 
-## Documentation
-
-| Guide | Contents |
-|-------|----------|
-| [docs/README.md](docs/README.md) | Documentation index and reading order |
-| [docs/setup.md](docs/setup.md) | Local development setup |
-| [docs/docker.md](docs/docker.md) | Compose services, profiles, rebuild workflow |
-| [docs/running-locally-docker-ngrok.md](docs/running-locally-docker-ngrok.md) | Phone access with ngrok |
-| [docs/architecture.md](docs/architecture.md) | Stack and data flow |
-| [docs/project-structure.md](docs/project-structure.md) | Directory layout |
-| [docs/api.md](docs/api.md) | HTTP API reference |
-| [docs/workflows.md](docs/workflows.md) | Maintainer workflows |
-| [docs/learning.md](docs/learning.md) | Code study path |
-| [docs/legal-and-operators.md](docs/legal-and-operators.md) | Legal notice and operator duties |
-| [docs/scraping-and-failures.md](docs/scraping-and-failures.md) | Collect failures and recovery |
+Logs: `docker compose logs -f app`
 
 ## Legal / data source
 
@@ -125,9 +107,9 @@ Licensed under the [MIT License](LICENSE).
 
 | Problem | Fix |
 |---------|-----|
-| Docker: empty board | `docker compose --profile collect run --rm collector` |
+| Docker: empty board | Wait for first collect or check `docker compose logs -f app` for `Collect OK` |
 | No data / 404 from API | Run `npm run collect` after `npm run migrate` |
 | Node 24 on Windows | Use Docker or install Node 22 LTS |
 | Port in use | `PORT=3001 npm run dev` (or set `PORT` in `.env` for Docker) |
 | Playwright browser missing | `npx playwright install chromium` |
-| Collect failures | [docs/scraping-and-failures.md](docs/scraping-and-failures.md) |
+| Collect failures | Check `docker compose logs -f app` for error output |

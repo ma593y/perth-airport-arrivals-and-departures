@@ -1,5 +1,5 @@
 ---
-description: Rebuild Docker image and recreate scheduler stack after code changes so the board serves updated files.
+description: Rebuild Docker image and recreate app container after code changes so the board serves updated files.
 alwaysApply: true
 ---
 
@@ -14,7 +14,7 @@ After changes under `public/`, `src/`, `scripts/`, `Dockerfile`, or `docker-comp
 ## Required command (default workflow)
 
 ```bash
-docker compose build; docker compose --profile scheduler up -d --force-recreate
+docker compose build; docker compose up -d --force-recreate
 ```
 
 Then hard-refresh the browser if the UI looks cached.
@@ -28,5 +28,4 @@ Rebuilds after `public/` or `src/` edits should be much faster than a cold build
 
 ## Alternatives
 
-- **API only** (no scheduler): `docker compose build api` then `docker compose up -d --force-recreate api`
 - **Faster local UI loop** (optional): `npm run dev` serves from disk without Docker rebuild; not a substitute for the user's Docker workflow when testing the full stack.
