@@ -15,10 +15,6 @@ export function runMigrations(): void {
   const start = Date.now();
   let appliedCount = 0;
 
-  logger.info("migrate", "migrate.start", {
-    databasePath: databasePath(),
-  });
-
   try {
     const sqlite = getSqlite();
     sqlite.exec(
@@ -61,10 +57,18 @@ export function runMigrations(): void {
       logger.info("migrate", "migrate.applied", { file });
     }
 
-    logger.info("migrate", "migrate.complete", {
-      durationMs: Date.now() - start,
-      appliedCount,
-    });
+    if (appliedCount === 0) {
+      logger.debug("migrate", "migrate.noop", {
+        databasePath: databasePath(),
+        durationMs: Date.now() - start,
+      });
+    } else {
+      logger.info("migrate", "migrate.complete", {
+        databasePath: databasePath(),
+        durationMs: Date.now() - start,
+        appliedCount,
+      });
+    }
   } catch (err) {
     logger.error("migrate", "migrate.error", {
       error: err instanceof Error ? err.message : String(err),

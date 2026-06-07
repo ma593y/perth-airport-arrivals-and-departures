@@ -1,5 +1,4 @@
 import { z } from "zod";
-import { apiFlightSchema } from "../schemas/airport-api.js";
 
 export const boardDirectionSchema = z.enum(["departures", "arrivals"]);
 
@@ -41,19 +40,6 @@ export const flightsQuerySchema = z.object({
     .transform((v) => v === "true" || v === "1"),
 });
 
-export const storeMetaResponseSchema = z.object({
-  boardDate: z.string(),
-  retainedBoardDates: z.array(z.string()),
-  lastScrapeAt: z.string(),
-  scrapeRevision: z.string(),
-});
-
-export const flightsResponseSchema = z.object({
-  meta: storeMetaResponseSchema,
-  flights: z.array(apiFlightSchema),
-});
-
 export type FlightsQuery = z.infer<typeof flightsQuerySchema>;
-export type MetaQuery = z.infer<typeof metaQuerySchema>;
 
 export const MAX_FLIGHTS = 500;

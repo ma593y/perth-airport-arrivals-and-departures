@@ -102,7 +102,7 @@ export function logFatalError(phase: string, err: unknown): void {
 export async function runStep<T>(
   phase: string,
   context: ErrorContext,
-  fn: () => Promise<T>,
+  fn: () => Promise<T> | T,
 ): Promise<T> {
   const start = Date.now();
   logger.debug("collect", "step.start", { step: phase, ...context });

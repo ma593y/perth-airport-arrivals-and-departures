@@ -82,28 +82,3 @@ export const logger = {
   error: (component: string, event: string, fields?: LogFields) =>
     log("error", component, event, fields),
 };
-
-export async function timed<T>(
-  component: string,
-  event: string,
-  fn: () => Promise<T> | T,
-  fields: LogFields = {},
-): Promise<T> {
-  const start = Date.now();
-  log("debug", component, `${event}.start`, fields);
-  try {
-    const result = await fn();
-    log("info", component, `${event}.complete`, {
-      ...fields,
-      durationMs: Date.now() - start,
-    });
-    return result;
-  } catch (err) {
-    log("error", component, `${event}.error`, {
-      ...fields,
-      durationMs: Date.now() - start,
-      error: err instanceof Error ? err.message : String(err),
-    });
-    throw err;
-  }
-}

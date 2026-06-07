@@ -63,11 +63,13 @@ function loadExistingHashes(
   return map;
 }
 
-export async function mergeFlightStore(
+const MAX_SKIP_SAMPLES = 3;
+
+export function mergeFlightStore(
   nature: FlightNature,
   payloads: FlightStorePayload[],
   options: MergeFlightStoreOptions,
-): Promise<MergeFlightStoreResult> {
+): MergeFlightStoreResult {
   const start = Date.now();
   const now = options.now ?? new Date();
   const scrapedAt = now.toISOString();
@@ -87,6 +89,21 @@ export async function mergeFlightStore(
   let changed = 0;
   let unchanged = 0;
   let skipped = 0;
+  let skippedInvalidKey = 0;
+  let skippedNotRetained = 0;
+  const skipSamples: string[] = [];
+
+  const recordSkip = (flightKey: string, reason: "invalidFlightKey" | "boardDateNotRetained") => {
+    skipped += 1;
+    if (reason === "invalidFlightKey") {
+      skippedInvalidKey += 1;
+    } else {
+      skippedNotRetained += 1;
+    }
+    if (skipSamples.length < MAX_SKIP_SAMPLES) {
+      skipSamples.push(flightKey);
+    }
+  };
 
   const mergeTx = sqlite.transaction(() => {
     const pending: PendingRow[] = [];
@@ -95,22 +112,11 @@ export async function mergeFlightStore(
       for (const flight of data.Results) {
         const flightBoardDate = boardDateFromFlightKey(flight.FlightKey);
         if (!flightBoardDate) {
-          logger.warn("store", "merge.skip", {
-            nature,
-            flightKey: flight.FlightKey,
-            reason: "invalid FlightKey",
-          });
-          skipped += 1;
+          recordSkip(flight.FlightKey, "invalidFlightKey");
           continue;
         }
         if (!allowed.has(flightBoardDate)) {
-          logger.warn("store", "merge.skip", {
-            nature,
-            flightKey: flight.FlightKey,
-            boardDate: flightBoardDate,
-            reason: "board date not retained",
-          });
-          skipped += 1;
+          recordSkip(flight.FlightKey, "boardDateNotRetained");
           continue;
         }
 
@@ -212,11 +218,20 @@ export async function mergeFlightStore(
 
   const { prunedCount, flightCount } = mergeTx();
 
+  if (skipSamples.length > 0) {
+    logger.debug("store", "merge.skip.samples", {
+      nature,
+      flightKeys: skipSamples.join(","),
+    });
+  }
+
   logger.info("store", "merge.complete", {
     nature,
     changed,
     unchanged,
     skipped,
+    skippedInvalidKey,
+    skippedNotRetained,
     prunedCount,
     flightCount,
     durationMs: Date.now() - start,
