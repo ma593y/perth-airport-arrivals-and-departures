@@ -44,13 +44,8 @@ export const flightsQuerySchema = z.object({
 export const storeMetaResponseSchema = z.object({
   boardDate: z.string(),
   retainedBoardDates: z.array(z.string()),
-  apiDateAwst: z.string(),
   lastScrapeAt: z.string(),
-  lastApiUpdated: z.string(),
   scrapeRevision: z.string(),
-  flightCount: z.number(),
-  nextDayPrefetch: z.boolean(),
-  nextDayHoursBeforeMidnight: z.number(),
 });
 
 export const flightsResponseSchema = z.object({

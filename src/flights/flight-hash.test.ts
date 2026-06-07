@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import type { FlightResult } from "../schemas/airport-api.js";
-import { flightHash } from "./flight-hash.js";
+import { flightHash } from "../db/flight-row.js";
 
 function sampleFlight(overrides: Partial<FlightResult> = {}): FlightResult {
   return {

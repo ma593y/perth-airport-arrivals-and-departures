@@ -4,12 +4,7 @@ import { Hono } from "hono";
 import { cors } from "hono/cors";
 import { publicDir } from "../lib/paths.js";
 import { getMetaForDirection, queryFlights } from "./queries.js";
-import {
-  flightsQuerySchema,
-  flightsResponseSchema,
-  metaQuerySchema,
-  storeMetaResponseSchema,
-} from "./schemas.js";
+import { flightsQuerySchema, metaQuerySchema } from "./schemas.js";
 
 const port = Number(process.env.PORT ?? 3000);
 const RATE_LIMIT_MAX = 120;
@@ -93,9 +88,8 @@ app.get("/api/meta", (c) => {
     );
   }
 
-  const body = storeMetaResponseSchema.parse(meta);
-  return c.json(body, 200, {
-    ETag: `"${body.scrapeRevision}"`,
+  return c.json(meta, 200, {
+    ETag: `"${meta.scrapeRevision}"`,
     "Cache-Control": "no-cache",
   });
 });
@@ -125,9 +119,8 @@ app.get("/api/flights", (c) => {
     );
   }
 
-  const body = flightsResponseSchema.parse(result);
-  return c.json(body, 200, {
-    ETag: `"${body.meta.scrapeRevision}"`,
+  return c.json(result, 200, {
+    ETag: `"${result.meta.scrapeRevision}"`,
     "Cache-Control": "no-cache",
   });
 });

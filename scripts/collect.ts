@@ -1,9 +1,7 @@
 import {
+  minutesUntilMidnightAwst,
   nextDayHoursBeforeMidnight,
   shouldFetchNextDayAwst,
-} from "../src/config/config.js";
-import {
-  minutesUntilMidnightAwst,
   todayAwstYyyyMmDd,
   tomorrowAwstYyyyMmDd,
   yesterdayAwstYyyyMmDd,
@@ -14,7 +12,7 @@ import {
   type MergeFlightStoreResult,
 } from "../src/flights/flight-store.js";
 import { logFatalError, runStep } from "../src/lib/format-error.js";
-import { formatRepoRelativePath } from "../src/lib/log-path.js";
+import { formatRepoRelativePath } from "../src/lib/paths.js";
 import { scrapeAllFlights } from "../src/ingest/perth-airport.js";
 import { runMigrations } from "./migrate.js";
 
@@ -39,32 +37,21 @@ function buildAllowedBoardDates(fetchNextDay: boolean, now: Date): string[] {
   return dates;
 }
 
-function departuresPayloads(
-  result: Awaited<ReturnType<typeof scrapeAllFlights>>,
-): FlightStorePayload[] {
-  const payloads: FlightStorePayload[] = [
-    { data: result.departures.data, apiDateAwst: result.date },
-  ];
-  if (result.nextDayDepartures && result.nextDate) {
-    payloads.push({
-      data: result.nextDayDepartures.data,
-      apiDateAwst: result.nextDate,
-    });
-  }
-  return payloads;
-}
+type ScrapeResult = Awaited<ReturnType<typeof scrapeAllFlights>>;
 
-function arrivalsPayloads(
-  result: Awaited<ReturnType<typeof scrapeAllFlights>>,
+function naturePayloads(
+  result: ScrapeResult,
+  nature: "departures" | "arrivals",
 ): FlightStorePayload[] {
-  const payloads: FlightStorePayload[] = [
-    { data: result.arrivals.data, apiDateAwst: result.date },
-  ];
-  if (result.nextDayArrivals && result.nextDate) {
-    payloads.push({
-      data: result.nextDayArrivals.data,
-      apiDateAwst: result.nextDate,
-    });
+  const today =
+    nature === "departures" ? result.departures.data : result.arrivals.data;
+  const nextDay =
+    nature === "departures"
+      ? result.nextDayDepartures?.data
+      : result.nextDayArrivals?.data;
+  const payloads: FlightStorePayload[] = [{ data: today }];
+  if (nextDay) {
+    payloads.push({ data: nextDay });
   }
   return payloads;
 }
@@ -133,19 +120,18 @@ async function main() {
 
   const mergeOptions = {
     allowedBoardDates: buildAllowedBoardDates(result.fetchNextDay, now),
-    fetchNextDay: result.fetchNextDay,
     now,
   };
 
   const departuresStore = await runStep(
     "merge departures into database",
     { nature: "Departures" },
-    () => mergeFlightStore("Departures", departuresPayloads(result), mergeOptions),
+    () => mergeFlightStore("Departures", naturePayloads(result, "departures"), mergeOptions),
   );
   const arrivalsStore = await runStep(
     "merge arrivals into database",
     { nature: "Arrivals" },
-    () => mergeFlightStore("Arrivals", arrivalsPayloads(result), mergeOptions),
+    () => mergeFlightStore("Arrivals", naturePayloads(result, "arrivals"), mergeOptions),
   );
 
   logSummary(result, departuresStore, arrivalsStore);

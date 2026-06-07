@@ -3,7 +3,7 @@ import { drizzle } from "drizzle-orm/better-sqlite3";
 import { mkdirSync } from "node:fs";
 import path from "node:path";
 import * as schema from "./schema.js";
-import { databasePath, dataDir } from "./paths.js";
+import { databasePath, dataDir } from "../lib/paths.js";
 
 let sqlite: Database.Database | null = null;
 let db: ReturnType<typeof drizzle<typeof schema>> | null = null;

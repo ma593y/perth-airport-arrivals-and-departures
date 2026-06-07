@@ -1,4 +1,4 @@
-import { index, integer, sqliteTable, text } from "drizzle-orm/sqlite-core";
+import { index, sqliteTable, text } from "drizzle-orm/sqlite-core";
 
 export const flights = sqliteTable(
   "flights",
@@ -37,14 +37,8 @@ export const storeMeta = sqliteTable("store_meta", {
   nature: text("nature").primaryKey(),
   boardDate: text("board_date").notNull(),
   retainedBoardDates: text("retained_board_dates").notNull(),
-  apiDateAwst: text("api_date_awst").notNull(),
   lastScrapeAt: text("last_scrape_at").notNull(),
-  lastApiUpdated: text("last_api_updated").notNull(),
-  lastApiUpdatedMs: integer("last_api_updated_ms"),
   scrapeRevision: text("scrape_revision").notNull(),
-  flightCount: integer("flight_count").notNull(),
-  nextDayPrefetch: integer("next_day_prefetch", { mode: "boolean" }).notNull(),
-  nextDayHoursBeforeMidnight: integer("next_day_hours_before_midnight").notNull(),
 });
 
 export type FlightRow = typeof flights.$inferSelect;

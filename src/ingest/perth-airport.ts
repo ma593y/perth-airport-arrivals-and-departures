@@ -1,5 +1,5 @@
 import { chromium, type Page } from "playwright";
-import { shouldFetchNextDayAwst } from "../config/config.js";
+import { shouldFetchNextDayAwst } from "../config/dates.js";
 import {
   parseMsDate,
   todayAwstMmDdYyyy,

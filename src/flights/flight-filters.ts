@@ -75,10 +75,6 @@ export function sortInstant(iso: string | null | undefined): number {
   return Number.isFinite(ms) ? ms : Number.POSITIVE_INFINITY;
 }
 
-export function flightSortMs(flight: ApiFlight): number {
-  return boardInstantMs(flight);
-}
-
 /** Effective board time for filters: estimated, then scheduled (matches table main line). */
 export function boardInstantMs(flight: ApiFlight): number {
   let ms = sortInstant(flight._estimatedAt);

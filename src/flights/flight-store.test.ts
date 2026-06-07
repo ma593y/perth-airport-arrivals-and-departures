@@ -27,12 +27,8 @@ function sampleFlight(overrides: Partial<FlightResult> = {}): FlightResult {
   };
 }
 
-function payload(
-  results: FlightResult[],
-  apiDateAwst = "2026-05-23",
-): { data: FlightResultsResponse; apiDateAwst: string } {
+function payload(results: FlightResult[]): { data: FlightResultsResponse } {
   return {
-    apiDateAwst,
     data: {
       LastUpdated: "/Date(1766587419126)/",
       Results: results,
@@ -66,7 +62,6 @@ describe("mergeFlightStore", () => {
       [payload([sampleFlight()])],
       {
         allowedBoardDates: ["2026-05-22", "2026-05-23"],
-        fetchNextDay: false,
         now: fixedNow,
       },
     );
@@ -78,7 +73,6 @@ describe("mergeFlightStore", () => {
   it("skips unchanged rows on second merge", async () => {
     const options = {
       allowedBoardDates: ["2026-05-22", "2026-05-23"],
-      fetchNextDay: false,
       now: fixedNow,
     };
     const p = [payload([sampleFlight()])];
@@ -91,7 +85,6 @@ describe("mergeFlightStore", () => {
   it("prunes board dates outside retention", async () => {
     const options = {
       allowedBoardDates: ["2026-05-23"],
-      fetchNextDay: false,
       now: fixedNow,
     };
     await mergeFlightStore(

@@ -13,3 +13,8 @@ export const publicDir = path.join(projectRoot, "public");
 export function databasePath(): string {
   return process.env.DATABASE_PATH ?? path.join(dataDir, "flights.db");
 }
+
+/** Format an absolute path relative to the repository root (forward slashes). */
+export function formatRepoRelativePath(absolutePath: string): string {
+  return path.relative(projectRoot, absolutePath).split(path.sep).join("/");
+}

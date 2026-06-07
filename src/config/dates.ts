@@ -87,12 +87,48 @@ export function minutesUntilMidnightAwst(now = new Date()): number {
   return Math.max(0, 24 * 60 - elapsedMinutes);
 }
 
-/** True when within the given hours before the next AWST midnight. */
-export function shouldFetchNextDayAwst(
+const DEFAULT_NEXT_DAY_HOURS = 3;
+
+/** Hours before AWST midnight when tomorrow's board is also fetched (default 3). */
+export function nextDayHoursBeforeMidnight(): number {
+  const raw = process.env.SCRAPE_NEXT_DAY_HOURS_BEFORE_MIDNIGHT;
+  if (raw === undefined || raw === "") {
+    return DEFAULT_NEXT_DAY_HOURS;
+  }
+  const value = Number(raw);
+  if (!Number.isFinite(value) || value <= 0 || value > 24) {
+    console.warn(
+      `Invalid SCRAPE_NEXT_DAY_HOURS_BEFORE_MIDNIGHT="${raw}", using default ${DEFAULT_NEXT_DAY_HOURS}`,
+    );
+    return DEFAULT_NEXT_DAY_HOURS;
+  }
+  return value;
+}
+
+function isWithinHoursBeforeMidnightAwst(
   hoursBeforeMidnight: number,
-  now = new Date(),
+  now: Date,
 ): boolean {
   return minutesUntilMidnightAwst(now) <= hoursBeforeMidnight * 60;
+}
+
+/** True when within the prefetch window before the next AWST midnight. */
+export function shouldFetchNextDayAwst(now: Date): boolean;
+export function shouldFetchNextDayAwst(
+  hoursBeforeMidnight: number,
+  now?: Date,
+): boolean;
+export function shouldFetchNextDayAwst(
+  hoursOrNow: number | Date,
+  now = new Date(),
+): boolean {
+  if (hoursOrNow instanceof Date) {
+    return isWithinHoursBeforeMidnightAwst(
+      nextDayHoursBeforeMidnight(),
+      hoursOrNow,
+    );
+  }
+  return isWithinHoursBeforeMidnightAwst(hoursOrNow, now);
 }
 
 const FLIGHT_KEY_BOARD_DATE = /^(.+)(\d{8})([ad])$/;

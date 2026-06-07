@@ -27,12 +27,6 @@ CREATE TABLE `store_meta` (
 	`nature` text PRIMARY KEY NOT NULL,
 	`board_date` text NOT NULL,
 	`retained_board_dates` text NOT NULL,
-	`api_date_awst` text NOT NULL,
 	`last_scrape_at` text NOT NULL,
-	`last_api_updated` text NOT NULL,
-	`last_api_updated_ms` integer,
-	`scrape_revision` text NOT NULL,
-	`flight_count` integer NOT NULL,
-	`next_day_prefetch` integer NOT NULL,
-	`next_day_hours_before_midnight` integer NOT NULL
+	`scrape_revision` text NOT NULL
 );

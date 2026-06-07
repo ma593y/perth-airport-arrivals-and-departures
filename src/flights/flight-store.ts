@@ -1,10 +1,8 @@
 import { and, eq, inArray, notInArray, sql } from "drizzle-orm";
-import { nextDayHoursBeforeMidnight } from "../config/config.js";
 import { getDb, getSqlite } from "../db/client.js";
-import { databasePath } from "../db/paths.js";
 import { flightResultToInsert } from "../db/flight-row.js";
 import { flights, storeMeta } from "../db/schema.js";
-import { lastApiUpdatedMs } from "../db/store-meta.js";
+import { databasePath } from "../lib/paths.js";
 import {
   boardDateFromFlightKey,
   todayAwstYyyyMmDd,
@@ -16,12 +14,10 @@ import type {
 
 export type FlightStorePayload = {
   data: FlightResultsResponse;
-  apiDateAwst: string;
 };
 
 export type MergeFlightStoreOptions = {
   allowedBoardDates: string[];
-  fetchNextDay: boolean;
   now?: Date;
 };
 
@@ -75,8 +71,6 @@ export async function mergeFlightStore(
   const scrapedAt = now.toISOString();
   const boardDate = todayAwstYyyyMmDd(now);
   const allowed = allowedDateSet(options.allowedBoardDates);
-  const primaryApiDateAwst = payloads[0]?.apiDateAwst ?? "";
-  const lastApiUpdated = payloads[0]?.data.LastUpdated ?? "";
   const scrapeRevision = scrapedAt;
 
   const sqlite = getSqlite();
@@ -186,28 +180,16 @@ export async function mergeFlightStore(
         nature,
         boardDate,
         retainedBoardDates: JSON.stringify(options.allowedBoardDates),
-        apiDateAwst: primaryApiDateAwst,
         lastScrapeAt: scrapedAt,
-        lastApiUpdated,
-        lastApiUpdatedMs: lastApiUpdatedMs(lastApiUpdated),
         scrapeRevision,
-        flightCount,
-        nextDayPrefetch: options.fetchNextDay,
-        nextDayHoursBeforeMidnight: nextDayHoursBeforeMidnight(),
       })
       .onConflictDoUpdate({
         target: storeMeta.nature,
         set: {
           boardDate,
           retainedBoardDates: JSON.stringify(options.allowedBoardDates),
-          apiDateAwst: primaryApiDateAwst,
           lastScrapeAt: scrapedAt,
-          lastApiUpdated,
-          lastApiUpdatedMs: lastApiUpdatedMs(lastApiUpdated),
           scrapeRevision,
-          flightCount,
-          nextDayPrefetch: options.fetchNextDay,
-          nextDayHoursBeforeMidnight: nextDayHoursBeforeMidnight(),
         },
       })
       .run();
