@@ -12,22 +12,11 @@ import {
   type MergeFlightStoreResult,
 } from "../src/flights/flight-store.js";
 import { logFatalError, runStep } from "../src/lib/format-error.js";
+import { logger } from "../src/lib/logger.js";
 import { formatRepoRelativePath } from "../src/lib/paths.js";
+import { runWithId } from "../src/lib/run-context.js";
 import { scrapeAllFlights } from "../src/ingest/perth-airport.js";
 import { runMigrations } from "./migrate.js";
-
-function formatLastUpdated(iso: string | null): string {
-  return iso ?? "(could not parse LastUpdated)";
-}
-
-function logPrefetchWindow(now: Date): void {
-  const hours = nextDayHoursBeforeMidnight();
-  const minutesLeft = Math.round(minutesUntilMidnightAwst(now));
-  const willFetch = shouldFetchNextDayAwst(now);
-  console.log(
-    `Prefetch: ${hours}h before AWST midnight (${minutesLeft} min until midnight) — next-day fetch: ${willFetch ? "yes" : "no"}\n`,
-  );
-}
 
 function buildAllowedBoardDates(fetchNextDay: boolean, now: Date): string[] {
   const dates = [yesterdayAwstYyyyMmDd(now), todayAwstYyyyMmDd(now)];
@@ -56,59 +45,49 @@ function naturePayloads(
   return payloads;
 }
 
-function logNatureSummary(
-  label: string,
-  apiToday: number,
-  apiTomorrow: number | undefined,
-  lastUpdated: string | null,
-  store: MergeFlightStoreResult,
-): void {
-  console.log(label);
-  console.log(`  API today:     ${apiToday}`);
-  if (apiTomorrow !== undefined) {
-    console.log(`  API tomorrow:  ${apiTomorrow}`);
-  }
-  console.log(`  LastUpdated:   ${formatLastUpdated(lastUpdated)}`);
-  console.log(
-    `  Database:      ${formatRepoRelativePath(store.path)} (${store.flightCount} flights, ${store.changed} changed, ${store.unchanged} unchanged, ${store.skipped} skipped, ${store.prunedCount} pruned)`,
-  );
-}
-
 function logSummary(
-  result: Awaited<ReturnType<typeof scrapeAllFlights>>,
+  result: ScrapeResult,
   departuresStore: MergeFlightStoreResult,
   arrivalsStore: MergeFlightStoreResult,
 ): void {
-  console.log("\n--- Summary ---\n");
-  console.log(`Date (AWST):     ${result.date}`);
-  console.log(
-    `Next-day fetch:  ${result.fetchNextDay ? `yes (${result.nextDate})` : "no"}`,
-  );
-  console.log();
-
-  logNatureSummary(
-    "Departures",
-    result.departures.data.Results.length,
-    result.nextDayDepartures?.data.Results.length,
-    result.departures.lastUpdated?.toISOString() ?? null,
-    departuresStore,
-  );
-  console.log();
-
-  logNatureSummary(
-    "Arrivals",
-    result.arrivals.data.Results.length,
-    result.nextDayArrivals?.data.Results.length,
-    result.arrivals.lastUpdated?.toISOString() ?? null,
-    arrivalsStore,
-  );
-  console.log("\nDone.");
+  logger.info("collect", "collect.summary", {
+    dateAwst: result.date,
+    fetchNextDay: result.fetchNextDay,
+    nextDate: result.nextDate ?? null,
+    departuresApiToday: result.departures.data.Results.length,
+    departuresApiTomorrow: result.nextDayDepartures?.data.Results.length ?? null,
+    departuresLastUpdated:
+      result.departures.lastUpdated?.toISOString() ?? null,
+    departuresChanged: departuresStore.changed,
+    departuresUnchanged: departuresStore.unchanged,
+    departuresSkipped: departuresStore.skipped,
+    departuresPruned: departuresStore.prunedCount,
+    departuresFlightCount: departuresStore.flightCount,
+    departuresDatabase: formatRepoRelativePath(departuresStore.path),
+    arrivalsApiToday: result.arrivals.data.Results.length,
+    arrivalsApiTomorrow: result.nextDayArrivals?.data.Results.length ?? null,
+    arrivalsLastUpdated: result.arrivals.lastUpdated?.toISOString() ?? null,
+    arrivalsChanged: arrivalsStore.changed,
+    arrivalsUnchanged: arrivalsStore.unchanged,
+    arrivalsSkipped: arrivalsStore.skipped,
+    arrivalsPruned: arrivalsStore.prunedCount,
+    arrivalsFlightCount: arrivalsStore.flightCount,
+    arrivalsDatabase: formatRepoRelativePath(arrivalsStore.path),
+  });
 }
 
 async function main() {
+  const start = Date.now();
   const now = new Date();
-  console.log("Perth Airport flight board — collect\n");
-  logPrefetchWindow(now);
+  const hours = nextDayHoursBeforeMidnight();
+  const minutesLeft = Math.round(minutesUntilMidnightAwst(now));
+  const willFetch = shouldFetchNextDayAwst(now);
+
+  logger.info("collect", "collect.start", {
+    prefetchHours: hours,
+    minutesUntilMidnight: minutesLeft,
+    willFetchNextDay: willFetch,
+  });
 
   await runStep("apply database migrations", {}, async () => {
     runMigrations();
@@ -135,9 +114,13 @@ async function main() {
   );
 
   logSummary(result, departuresStore, arrivalsStore);
+
+  logger.info("collect", "collect.complete", {
+    durationMs: Date.now() - start,
+  });
 }
 
-main().catch((err: unknown) => {
+runWithId(() => main()).catch((err: unknown) => {
   logFatalError("collect run", err);
   process.exit(1);
 });

@@ -12,6 +12,7 @@ import {
   type BoardDirection,
 } from "../flights/flight-filters.js";
 import type { ApiFlight, FlightNature } from "../schemas/airport-api.js";
+import { logger } from "../lib/logger.js";
 import type { FlightsQuery } from "./schemas.js";
 import { MAX_FLIGHTS } from "./schemas.js";
 
@@ -86,8 +87,18 @@ export function queryFlights(params: FlightsQuery): {
     hideCompleted: params.hideCompleted,
   });
 
+  const sorted = sortFlights(filtered);
+
+  logger.debug("api", "query.flights", {
+    direction,
+    sqlRowCount: rows.length,
+    afterFilterCount: sorted.length,
+    lastHours: params.lastHours,
+    nextHours: params.nextHours,
+  });
+
   return {
     meta,
-    flights: sortFlights(filtered),
+    flights: sorted,
   };
 }

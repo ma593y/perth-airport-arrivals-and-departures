@@ -7,6 +7,7 @@ import {
   boardDateFromFlightKey,
   todayAwstYyyyMmDd,
 } from "../config/dates.js";
+import { logger } from "../lib/logger.js";
 import type {
   FlightNature,
   FlightResultsResponse,
@@ -67,11 +68,18 @@ export async function mergeFlightStore(
   payloads: FlightStorePayload[],
   options: MergeFlightStoreOptions,
 ): Promise<MergeFlightStoreResult> {
+  const start = Date.now();
   const now = options.now ?? new Date();
   const scrapedAt = now.toISOString();
   const boardDate = todayAwstYyyyMmDd(now);
   const allowed = allowedDateSet(options.allowedBoardDates);
   const scrapeRevision = scrapedAt;
+
+  logger.info("store", "merge.start", {
+    nature,
+    payloadCount: payloads.length,
+    allowedBoardDates: options.allowedBoardDates.join(","),
+  });
 
   const sqlite = getSqlite();
   const db = getDb();
@@ -87,16 +95,21 @@ export async function mergeFlightStore(
       for (const flight of data.Results) {
         const flightBoardDate = boardDateFromFlightKey(flight.FlightKey);
         if (!flightBoardDate) {
-          console.warn(
-            `[${nature}] Skipping invalid FlightKey: ${flight.FlightKey}`,
-          );
+          logger.warn("store", "merge.skip", {
+            nature,
+            flightKey: flight.FlightKey,
+            reason: "invalid FlightKey",
+          });
           skipped += 1;
           continue;
         }
         if (!allowed.has(flightBoardDate)) {
-          console.warn(
-            `[${nature}] Skipping FlightKey with board date ${flightBoardDate} (retained: ${[...allowed].join(", ")}): ${flight.FlightKey}`,
-          );
+          logger.warn("store", "merge.skip", {
+            nature,
+            flightKey: flight.FlightKey,
+            boardDate: flightBoardDate,
+            reason: "board date not retained",
+          });
           skipped += 1;
           continue;
         }
@@ -198,6 +211,16 @@ export async function mergeFlightStore(
   });
 
   const { prunedCount, flightCount } = mergeTx();
+
+  logger.info("store", "merge.complete", {
+    nature,
+    changed,
+    unchanged,
+    skipped,
+    prunedCount,
+    flightCount,
+    durationMs: Date.now() - start,
+  });
 
   return {
     path: databasePath(),

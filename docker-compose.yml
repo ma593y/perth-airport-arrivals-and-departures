@@ -29,6 +29,7 @@ services:
       TZ: Australia/Perth
 
       SCRAPE_INTERVAL_SECONDS: ${SCRAPE_INTERVAL_SECONDS:-60}
+      LOG_LEVEL: ${LOG_LEVEL:-info}
 
     volumes:
 

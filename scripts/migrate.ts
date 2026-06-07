@@ -2,6 +2,8 @@ import { readFileSync, readdirSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { getSqlite } from "../src/db/client.js";
+import { logger } from "../src/lib/logger.js";
+import { databasePath } from "../src/lib/paths.js";
 
 const drizzleDir = path.join(
   path.dirname(fileURLToPath(import.meta.url)),
@@ -10,44 +12,64 @@ const drizzleDir = path.join(
 );
 
 export function runMigrations(): void {
-  const sqlite = getSqlite();
-  sqlite.exec(
-    "CREATE TABLE IF NOT EXISTS __drizzle_migrations (id INTEGER PRIMARY KEY AUTOINCREMENT, hash TEXT NOT NULL, created_at INTEGER NOT NULL)",
-  );
+  const start = Date.now();
+  let appliedCount = 0;
 
-  const applied = new Set(
-    (
+  logger.info("migrate", "migrate.start", {
+    databasePath: databasePath(),
+  });
+
+  try {
+    const sqlite = getSqlite();
+    sqlite.exec(
+      "CREATE TABLE IF NOT EXISTS __drizzle_migrations (id INTEGER PRIMARY KEY AUTOINCREMENT, hash TEXT NOT NULL, created_at INTEGER NOT NULL)",
+    );
+
+    const applied = new Set(
+      (
+        sqlite
+          .prepare("SELECT hash FROM __drizzle_migrations")
+          .all() as { hash: string }[]
+      ).map((r) => r.hash),
+    );
+
+    const files = readdirSync(drizzleDir)
+      .filter((f) => f.endsWith(".sql"))
+      .sort();
+
+    for (const file of files) {
+      const hash = file.replace(/\.sql$/, "");
+      if (applied.has(hash)) continue;
+
+      const sql = readFileSync(path.join(drizzleDir, file), "utf8");
+      const statements = sql
+        .split(/--> statement-breakpoint\n?/)
+        .map((s) => s.trim())
+        .filter(Boolean);
+
+      for (const statement of statements) {
+        sqlite.exec(statement);
+      }
+
       sqlite
-        .prepare("SELECT hash FROM __drizzle_migrations")
-        .all() as { hash: string }[]
-    ).map((r) => r.hash),
-  );
+        .prepare(
+          "INSERT INTO __drizzle_migrations (hash, created_at) VALUES (?, ?)",
+        )
+        .run(hash, Date.now());
 
-  const files = readdirSync(drizzleDir)
-    .filter((f) => f.endsWith(".sql"))
-    .sort();
-
-  for (const file of files) {
-    const hash = file.replace(/\.sql$/, "");
-    if (applied.has(hash)) continue;
-
-    const sql = readFileSync(path.join(drizzleDir, file), "utf8");
-    const statements = sql
-      .split(/--> statement-breakpoint\n?/)
-      .map((s) => s.trim())
-      .filter(Boolean);
-
-    for (const statement of statements) {
-      sqlite.exec(statement);
+      appliedCount += 1;
+      logger.info("migrate", "migrate.applied", { file });
     }
 
-    sqlite
-      .prepare(
-        "INSERT INTO __drizzle_migrations (hash, created_at) VALUES (?, ?)",
-      )
-      .run(hash, Date.now());
-
-    console.log(`Applied migration: ${file}`);
+    logger.info("migrate", "migrate.complete", {
+      durationMs: Date.now() - start,
+      appliedCount,
+    });
+  } catch (err) {
+    logger.error("migrate", "migrate.error", {
+      error: err instanceof Error ? err.message : String(err),
+    });
+    throw err;
   }
 }
 
@@ -58,5 +80,4 @@ const isDirectRun =
 
 if (isDirectRun) {
   runMigrations();
-  console.log("Migrations complete.");
 }

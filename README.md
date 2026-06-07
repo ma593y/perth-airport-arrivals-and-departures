@@ -89,7 +89,15 @@ docker compose build
 docker compose up -d --force-recreate
 ```
 
-Logs: `docker compose logs -f app`
+Logs (structured JSON):
+
+```powershell
+docker compose logs -f app
+docker compose logs -f app | jq 'select(.level=="error")'
+docker compose logs -f app | jq 'select(.runId=="<id>")'
+```
+
+Set `LOG_LEVEL=debug` in `.env` for query and step-level detail.
 
 ## Legal / data source
 
@@ -107,7 +115,7 @@ Licensed under the [MIT License](LICENSE).
 
 | Problem | Fix |
 |---------|-----|
-| Docker: empty board | Wait for first collect or check `docker compose logs -f app` for `Collect OK` |
+| Docker: empty board | Wait for first collect or check logs for `"event":"collect.complete"` |
 | No data / 404 from API | Run `npm run collect` after `npm run migrate` |
 | Node 24 on Windows | Use Docker or install Node 22 LTS |
 | Port in use | `PORT=3001 npm run dev` (or set `PORT` in `.env` for Docker) |

@@ -1,4 +1,5 @@
 import { ZodError, type ZodIssue } from "zod";
+import { logger } from "./logger.js";
 
 export type ErrorContext = Record<string, string | number | boolean | null | undefined>;
 
@@ -92,12 +93,10 @@ export function formatError(err: unknown): string {
 }
 
 export function logFatalError(phase: string, err: unknown): void {
-  const divider = "─".repeat(60);
-  console.error(`\n${divider}`);
-  console.error(`[collect] FAILED — ${phase}`);
-  console.error(divider);
-  console.error(formatError(err));
-  console.error(`${divider}\n`);
+  logger.error("collect", "collect.failed", {
+    phase,
+    error: formatError(err),
+  });
 }
 
 export async function runStep<T>(
@@ -105,8 +104,16 @@ export async function runStep<T>(
   context: ErrorContext,
   fn: () => Promise<T>,
 ): Promise<T> {
+  const start = Date.now();
+  logger.debug("collect", "step.start", { step: phase, ...context });
   try {
-    return await fn();
+    const result = await fn();
+    logger.info("collect", "step.complete", {
+      step: phase,
+      ...context,
+      durationMs: Date.now() - start,
+    });
+    return result;
   } catch (err) {
     throw new ScrapeContextError(phase, context, err);
   }

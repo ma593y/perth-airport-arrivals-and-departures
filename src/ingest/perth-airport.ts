@@ -6,6 +6,7 @@ import {
   tomorrowAwstMmDdYyyy,
 } from "../config/dates.js";
 import { ScrapeContextError, summarizeFlightJson } from "../lib/format-error.js";
+import { logger } from "../lib/logger.js";
 import {
   flightResultsResponseSchema,
   type FlightNature,
@@ -132,7 +133,8 @@ export async function scrapeAllFlights(now = new Date()): Promise<ScrapeAllResul
     });
     const page = await context.newPage();
 
-    console.log(`Opening ${FLIGHTS_URL} ...`);
+    logger.info("scrape", "scrape.page.open", { url: FLIGHTS_URL });
+    const pageReadyStart = Date.now();
     try {
       await page.goto(FLIGHTS_URL, {
         waitUntil: "domcontentloaded",
@@ -152,6 +154,11 @@ export async function scrapeAllFlights(now = new Date()): Promise<ScrapeAllResul
       );
     }
 
+    logger.info("scrape", "scrape.page.ready", {
+      url: FLIGHTS_URL,
+      durationMs: Date.now() - pageReadyStart,
+    });
+
     const tokenLocator = page
       .locator('input[name="__RequestVerificationToken"]')
       .first();
@@ -165,39 +172,32 @@ export async function scrapeAllFlights(now = new Date()): Promise<ScrapeAllResul
 
     const date = todayAwstMmDdYyyy(now);
     const fetchNextDay = shouldFetchNextDayAwst(now);
-    console.log(`Using date (AWST): ${date}`);
-    if (fetchNextDay) {
-      console.log("Within next-day prefetch window — will also fetch tomorrow's board");
-    }
 
     const fetchBoard = async (
-      label: string,
       boardDate: string,
       nature: FlightNature,
+      dayLabel: "today" | "tomorrow",
     ): Promise<FlightResultsResponse> => {
-      console.log(label);
       try {
-        return await fetchFlightResults(page, csrfToken, boardDate, nature);
+        const data = await fetchFlightResults(page, csrfToken, boardDate, nature);
+        logger.info("scrape", "scrape.board.fetch", {
+          nature,
+          date: boardDate,
+          dayLabel,
+          resultCount: data.Results.length,
+        });
+        return data;
       } catch (err) {
         throw new ScrapeContextError(`Failed to fetch ${nature} board`, {
           nature,
           dateAwst: boardDate,
-          label,
+          dayLabel,
         }, err);
       }
     };
 
-    const departuresData = await fetchBoard(
-      "Fetching departures (today) ...",
-      date,
-      "Departures",
-    );
-
-    const arrivalsData = await fetchBoard(
-      "Fetching arrivals (today) ...",
-      date,
-      "Arrivals",
-    );
+    const departuresData = await fetchBoard(date, "Departures", "today");
+    const arrivalsData = await fetchBoard(date, "Arrivals", "today");
 
     let nextDate: string | undefined;
     let nextDayDepartures: ScrapeNatureResult | undefined;
@@ -205,19 +205,10 @@ export async function scrapeAllFlights(now = new Date()): Promise<ScrapeAllResul
 
     if (fetchNextDay) {
       nextDate = tomorrowAwstMmDdYyyy(now);
-      console.log(`Fetching next day (AWST): ${nextDate}`);
+      logger.info("scrape", "scrape.board.next_day", { nextDate });
 
-      const nextDeparturesData = await fetchBoard(
-        "Fetching departures (tomorrow) ...",
-        nextDate,
-        "Departures",
-      );
-
-      const nextArrivalsData = await fetchBoard(
-        "Fetching arrivals (tomorrow) ...",
-        nextDate,
-        "Arrivals",
-      );
+      const nextDeparturesData = await fetchBoard(nextDate, "Departures", "tomorrow");
+      const nextArrivalsData = await fetchBoard(nextDate, "Arrivals", "tomorrow");
 
       nextDayDepartures = {
         nature: "Departures",
@@ -230,6 +221,12 @@ export async function scrapeAllFlights(now = new Date()): Promise<ScrapeAllResul
         lastUpdated: parseMsDate(nextArrivalsData.LastUpdated),
       };
     }
+
+    logger.info("scrape", "scrape.complete", {
+      date,
+      fetchNextDay,
+      nextDate: nextDate ?? null,
+    });
 
     return {
       date,
