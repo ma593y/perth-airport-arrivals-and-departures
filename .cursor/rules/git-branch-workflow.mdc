@@ -1,0 +1,46 @@
+---
+description: Never edit or commit on main; create a feature branch before making changes.
+alwaysApply: true
+---
+
+# Git branch workflow
+
+Do not make code changes on `main`. All implementation work happens on a dedicated branch created from `main`.
+
+## When this applies
+
+Before any file edit, commit, or implementation task.
+
+Does **not** apply to read-only work: exploring code, answering questions, `git status`, `git log`, etc.
+
+## Required workflow
+
+1. Check the current branch: `git branch --show-current`
+2. If on `main` (or `master`), **stop** — do not edit files yet
+3. Create and switch to a new branch:
+   ```bash
+   git checkout -b <branch-name>
+   ```
+4. Make changes only on that branch
+5. When the user asks for a commit, commit on the feature branch — not `main`
+
+## Branch naming
+
+Use a short, descriptive slug derived from the task:
+
+- `feature/add-terminal-filter`
+- `fix/scrape-timeout`
+- `chore/update-deps`
+
+Prefer lowercase kebab-case with a type prefix (`feature/`, `fix/`, `chore/`). If the user names a branch, use theirs.
+
+## Edge cases
+
+- **User explicitly asks to work on `main`**: follow the user; this rule is the default, not an override of direct instructions.
+- **Already on a non-main branch**: continue on that branch; do not create a nested branch unless the user asks.
+- **Dirty `main` with uncommitted work**: do not stash or reset without asking; `git checkout -b` carries uncommitted changes to the new branch. Confirm with the user if the situation is ambiguous.
+
+## Agent behavior
+
+- Never silently edit files while `git branch --show-current` is `main`.
+- Never commit directly to `main` unless the user explicitly requests it.
