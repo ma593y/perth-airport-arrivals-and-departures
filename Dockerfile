@@ -26,6 +26,8 @@ RUN npx playwright install --with-deps chromium
 
 COPY . .
 
+COPY data/port-routes.json /app/port-routes.seed.json
+
 ENV NODE_ENV=production
 
 RUN sed -i 's/\r$//' docker/*.sh \

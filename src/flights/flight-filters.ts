@@ -1,5 +1,6 @@
 import { boardTimeToAwstIso } from "../config/dates.js";
 import type { ApiFlight } from "../schemas/airport-api.js";
+import { lookupPortRouteType } from "./port-routes.js";
 
 export type BoardDirection = "departures" | "arrivals";
 
@@ -35,6 +36,9 @@ export function deriveRouteType(
   flight: ApiFlight,
   intlPorts: Set<string>,
 ): "domestic" | "international" | "unknown" {
+  const fromPort = lookupPortRouteType(flight.PortName);
+  if (fromPort) return fromPort;
+
   const logo = flight.AirlineLogo ?? "";
   if (logo.includes("/International/")) return "international";
   if (logo.includes("/Domestic/")) return "domestic";

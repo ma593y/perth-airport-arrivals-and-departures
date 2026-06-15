@@ -2,7 +2,11 @@
 set -e
 
 db="${DATABASE_PATH:-/app/data/flights.db}"
-mkdir -p "$(dirname "$db")"
+db_dir="$(dirname "$db")"
+mkdir -p "$db_dir"
+if [ ! -f "$db_dir/port-routes.json" ] && [ -f /app/port-routes.seed.json ]; then
+  cp /app/port-routes.seed.json "$db_dir/port-routes.json"
+fi
 interval="${SCRAPE_INTERVAL_SECONDS:-60}"
 port="${PORT:-3000}"
 

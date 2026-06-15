@@ -1,5 +1,8 @@
 import assert from "node:assert/strict";
-import { describe, it } from "node:test";
+import fs from "node:fs";
+import os from "node:os";
+import path from "node:path";
+import { afterEach, beforeEach, describe, it } from "node:test";
 import type { ApiFlight } from "../schemas/airport-api.js";
 import {
   applyClientFilters,
@@ -7,6 +10,7 @@ import {
   isCompleted,
   terminalGroup,
 } from "./flight-filters.js";
+import { resetPortRoutesCache } from "./port-routes.js";
 
 function apiFlight(overrides: Partial<ApiFlight> = {}): ApiFlight {
   return {
@@ -59,10 +63,47 @@ describe("isCompleted", () => {
 });
 
 describe("attachRouteTypes and applyClientFilters", () => {
+  let tmpDir: string;
+  let prevRoutesPath: string | undefined;
+  let prevDbPath: string | undefined;
+
+  beforeEach(() => {
+    tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "flight-filters-test-"));
+    prevRoutesPath = process.env.PORT_ROUTES_PATH;
+    prevDbPath = process.env.DATABASE_PATH;
+    process.env.DATABASE_PATH = path.join(tmpDir, "flights.db");
+    process.env.PORT_ROUTES_PATH = path.join(tmpDir, "port-routes.json");
+    fs.writeFileSync(process.env.PORT_ROUTES_PATH, JSON.stringify({
+      version: 1,
+      updatedAt: "2026-06-16T00:00:00.000Z",
+      ports: {
+        Singapore: { routeType: "international", verified: true },
+        Melbourne: { routeType: "domestic", verified: true },
+      },
+    }));
+    resetPortRoutesCache();
+  });
+
+  afterEach(() => {
+    if (prevRoutesPath === undefined) {
+      delete process.env.PORT_ROUTES_PATH;
+    } else {
+      process.env.PORT_ROUTES_PATH = prevRoutesPath;
+    }
+    if (prevDbPath === undefined) {
+      delete process.env.DATABASE_PATH;
+    } else {
+      process.env.DATABASE_PATH = prevDbPath;
+    }
+    resetPortRoutesCache();
+    fs.rmSync(tmpDir, { recursive: true, force: true });
+  });
+
   it("derives international from logo path", () => {
     const flights = attachRouteTypes(
       [
         apiFlight({
+          PortName: "Dubai",
           AirlineLogo: "/International/Emirates.png",
           _routeType: "unknown",
         }),
@@ -78,6 +119,7 @@ describe("attachRouteTypes and applyClientFilters", () => {
         apiFlight({ _routeType: "domestic", Remark: "Departed" }),
         apiFlight({
           FlightNumber: "EK420",
+          PortName: "Dubai",
           _routeType: "international",
           AirlineLogo: "/International/Emirates.png",
         }),
@@ -91,5 +133,34 @@ describe("attachRouteTypes and applyClientFilters", () => {
     });
     assert.equal(filtered.length, 1);
     assert.equal(filtered[0].FlightNumber, "EK420");
+  });
+
+  it("uses port registry over domestic logo for international port", () => {
+    const flights = attachRouteTypes(
+      [
+        apiFlight({
+          FlightNumber: "QF71",
+          PortName: "Singapore",
+          AirlineLogo: "/Domestic/Qantas.png",
+          _routeType: "unknown",
+        }),
+      ],
+      "departures",
+    );
+    assert.equal(flights[0]._routeType, "international");
+  });
+
+  it("falls back to logo when port is not in registry", () => {
+    const flights = attachRouteTypes(
+      [
+        apiFlight({
+          PortName: "Dubai",
+          AirlineLogo: "/International/Emirates.png",
+          _routeType: "unknown",
+        }),
+      ],
+      "arrivals",
+    );
+    assert.equal(flights[0]._routeType, "international");
   });
 });

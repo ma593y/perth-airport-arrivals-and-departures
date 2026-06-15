@@ -13,6 +13,7 @@ import {
 import { logFatalError, runStep } from "../src/lib/format-error.js";
 import { logger } from "../src/lib/logger.js";
 import { runWithId } from "../src/lib/run-context.js";
+import { syncPortRoutesFromScrape } from "../src/flights/port-routes.js";
 import { scrapeAllFlights } from "../src/ingest/perth-airport.js";
 
 function buildAllowedBoardDates(fetchNextDay: boolean, now: Date): string[] {
@@ -74,6 +75,12 @@ async function main() {
     { nature: "Arrivals" },
     () => mergeFlightStore("Arrivals", naturePayloads(result, "arrivals"), mergeOptions),
   );
+
+  if (result.fetchNextDay) {
+    await runStep("sync port route registry", {}, () =>
+      Promise.resolve(syncPortRoutesFromScrape(result)),
+    );
+  }
 
   logger.info("collect", "collect.complete", {
     durationMs: Date.now() - start,
